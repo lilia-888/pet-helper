@@ -2,13 +2,13 @@
 
 ## 1. Project Summary
 
-**Site Name:** *(TBD — e.g. "PawAlert" or "Find My Pet")*
+**Site Name:** PetAlert
 
 **Audience:** Pet owners of any age in a local area who have just lost a pet — including older adults and people who are not comfortable with technology — as well as local animal shelters that want to list found or unclaimed pets.
 
 **Problem:** When a pet goes missing, there is no quick way to reach the right people nearby — and if the pet has no tag, strangers who find it have no way to contact the owner.
 
-**Goal:** A simple website that lets owners post a missing pet alert, lets local shelters upload animals in their care, lets neighbors report sightings, and makes it easy to share — designed to be accessible to everyone regardless of tech experience.
+**Goal:** A simple website that lets owners post a missing pet alert, lets neighbors report sightings, and makes it easy to share — designed to be accessible to everyone regardless of tech experience.
 
 ---
 
@@ -26,26 +26,20 @@ Posts stay up until the owner removes them or marks the pet as found. When a pos
   - **"Find Your Pet"** — jumps to the pet card grid with filters so owners can search listings
   - **"Report a Lost Pet"** — jumps to the post form so owners can create a new alert
   - **"How to Help"** — jumps to the how to help a neighbor's lost pet section
-  - **"Share This Page"** — opens a share dialog or copies the link
 
 ### 2.2 Recently Reported Lost Pets
 - Search bar at the top so users can type a pet name or description to find a specific listing
 - Filter bar below the search bar so users can narrow results by:
   - Animal type (dog, cat, bird, etc.)
-  - Area or distance from a location
   - Date reported
-  - Posted by (owner or shelter)
 - Cards are sorted by date, with the most recently posted at the top and older posts pushed to the bottom
 - A grid of pet cards, each showing:
   - Photo of the pet (icon if no photo uploaded)
   - Pet name and type (dog, cat, etc.)
   - Last seen location and date/time
-  - Contact phone number
   - A colored badge showing the search area radius (e.g. "Within 5 km")
-  - A badge indicating if the card was posted by a **shelter** or a **pet owner**
-- Each card has two buttons visible to all users:
-  - **"I Spotted This Pet"** — opens a short form: where you saw it, when, and an optional photo
-  - **"Message Owner"** — opens a private message thread between that person and the owner, tied to that specific card
+- Each card has one button visible to all users:
+  - **"Contact Owner"** — opens a new chat thread with the owner in the Chats area (login required)
 - If the viewer is the owner of that card, they also see:
   - **"Mark as Reunited"** — moves the post off the main page and marks the pet as found
 
@@ -54,16 +48,12 @@ Posts stay up until the owner removes them or marks the pet as found. When a pos
   - Pet name, type, color, size
   - Last seen address or area
   - Date and time last seen
-  - Owner phone number
   - Upload a photo (optional but encouraged)
   - Search radius (small / medium / large area)
-  - Option to indicate if the post is from a **shelter** (for shelters listing found animals)
-  - Notification consent prompt: "Allow phone notifications when someone reports a sighting?" — owner can allow or skip, no email ever sent
 - Submit button creates a new card in the section above
 
 ### 2.4 What To Do If Your Pet Is Missing
-- An interactive checklist with each step written in plain language
-- Logged-in users can tick off each step as they complete it to track their progress
+- A checklist with each step written in plain language
 - Each step has a small icon next to it to make it easy to scan
 - Example steps:
   - [ ] Post on this site right away
@@ -74,10 +64,9 @@ Posts stay up until the owner removes them or marks the pet as found. When a pos
 ### 2.5 How to Help a Neighbor's Lost Pet
 - Short tips for people who spot a stray, written in plain language
 - What to do:
-  - Report the sighting using the "I Spotted This Pet" button on the matching card
+  - Use the Chats section to contact the owner if you have more details
   - Take a photo if it is safe to do so
   - Note the exact street or landmark where you saw the animal
-  - Contact the owner using the "Message Owner" button if you have more details
 - What not to do:
   - Do not chase the animal as it may run further away
   - Do not pick up the animal unless it is clearly injured
@@ -89,20 +78,18 @@ Posts stay up until the owner removes them or marks the pet as found. When a pos
 - Covers:
   - How to search and filter lost pet listings
   - How to post a missing pet report
-  - How to report a sighting
-  - How to message an owner
+  - How to contact an owner through Chats
   - How to mark your pet as reunited when found
 
 ### 2.7 Chats
-- A messaging area only visible to users who have an active lost pet post or who have sent a message on a listing
-- Users can create a chat tied to their report or an existing listing to communicate with others
+- A messaging area only visible to users who have an active lost pet post or who have started a conversation about a listing
+- Users can start a chat tied to an existing listing to communicate with the owner
 - Only the people involved in that chat can see it — no public group chat
-- Separate from the "Message Owner" DM button on each card — this gives users a dedicated space to manage all their conversations in one place
+- This is the main way neighbors and owners communicate — no separate per-card DM button
 
 ### 2.8 Call to Action (Bottom of Page)
-- Two big buttons side by side:
+- One big button:
   - **"Report a Lost Pet"** — scrolls back to the form
-  - **"Share This Page"** — opens a share dialog or copies the link
 
 ---
 
@@ -111,14 +98,11 @@ Posts stay up until the owner removes them or marks the pet as found. When a pos
 ### Must Have (for class project deadline)
 | Feature | Description |
 |---|---|
-| Pet card grid | Shows lost pet posts with photo, location, phone number |
+| Pet card grid | Shows lost pet posts with photo, last seen location, and search radius badge |
 | Search bar | Type a pet name or description to find a specific listing |
-| Filters | Filter cards by animal type, area, date, and posted by owner or shelter |
+| Filters | Filter cards by animal type and date reported |
 | Find Your Pet button | Jumps owners straight to the search and filter grid |
-| Shelter uploads | Shelters can post found or unclaimed animals using the same form |
-| Sighting report button | Anyone can tap a card and report where they saw the pet |
 | Mark as Reunited button | Visible only to the owner on their own card — moves the post off the main page |
-| Private messaging | Message Owner button on each card opens a private thread between that person and the owner |
 | Chats area | Dedicated messaging space for users with active posts or existing conversations |
 | Post a pet form | Owner fills in details and uploads a photo |
 | Simple login | Sign up with name, email, and password — no confirmation email. Required only to post, remove a listing, or use chats. Browse without an account |
@@ -128,10 +112,12 @@ Posts stay up until the owner removes them or marks the pet as found. When a pos
 ### Nice to Have (stretch goals)
 | Feature | Description |
 |---|---|
+| Sighting report button | Button on each card opens a short form — where you saw the pet, when, and an optional photo — and notifies the owner |
+| Shelter uploads | Shelters can post found or unclaimed animals using the same form, with a badge on their card indicating the post is from a shelter |
 | Reunited page | Separate page where pets marked as found are displayed, with a running reunited count to show the site's impact |
 | Social media search | Site checks for matching posts on Facebook/Nextdoor and links to them |
 | Auto-post to social media | Posting on this site also shares to the owner's social media |
-| Notifications | Owner gets a site notification and an optional phone push notification when someone reports a sighting — phone notifications only if the owner consents. No email |
+| Notifications | Owner gets a site notification and an optional phone push notification when someone reports a sighting — phone notifications only if the owner consents (consent collected in the post form). No email |
 | Map view | Shows sighting pins on a map within the search radius |
 | Donate button | Opens a list of connected shelters and charities so the user can choose where to send their donation |
 | Shelter data access | If a shelter consents, the site can pull their current animal listings and display a small section at the bottom of the main page with the shelter's name, area, and animals in their care |
@@ -162,8 +148,44 @@ Posts stay up until the owner removes them or marks the pet as found. When a pos
 
 - What area radius options should we offer? (e.g. 1 km, 5 km, 10 km)
 - Should sighting reports go straight to the page, or only after the owner approves them?
-- How do shelters and charities register to appear on the site?
+- How do shelters and charities register to appear on the site? *(not blocking — shelter features are stretch goals)*
 
 ---
 
 *Draft version — Grade 7 Class Project*
+
+---
+
+## 7. Lesson 7 MVP Ready Check
+
+**Cards and search**
+- [ ] At least one pet card appears on the page with a photo (or placeholder), pet name, type, last seen location, and radius badge
+- [ ] Search bar filters cards by pet name or description
+- [ ] Animal type filter narrows the card grid correctly
+- [ ] Date filter sorts or narrows the card grid correctly
+- [ ] "Find Your Pet" button jumps straight to the card grid
+
+**Posting a pet**
+- [ ] Post form has all fields: name, type, color, size, last seen location, date and time, photo upload, and radius choice
+- [ ] Submitting the form adds a new card to the grid
+
+**Login**
+- [ ] Anyone can browse cards without an account
+- [ ] Sign up works with just a name, email, and password — no confirmation email
+- [ ] Log in and log out work
+
+**Owner controls**
+- [ ] "Mark as Reunited" button is visible only to the owner of that card
+- [ ] Clicking it removes the card from the main grid
+
+**Chats**
+- [ ] "Contact Owner" button appears on every card
+- [ ] Clicking it opens a new chat thread with the owner (login required)
+- [ ] A logged-in user with an active post can open the Chats area
+- [ ] Two users can exchange messages in a chat tied to a listing
+
+**Content and design**
+- [ ] "What To Do If Your Pet Is Missing" checklist is on the page
+- [ ] "Tips and How to Use This Site" guide is on the page
+- [ ] All buttons use plain labels (no technical jargon)
+- [ ] Page is readable on a phone screen
