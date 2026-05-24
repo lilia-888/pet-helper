@@ -4,47 +4,1466 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PetAlert — Lost Pet Finder</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+
+    /* ── Base ── */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 16px;
+      color: #1e293b;
+      background: #f8fafc;
+      line-height: 1.65;
+    }
+
+    /* ── Navbar ── */
+    .navbar {
+      background: #0f2d52;
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    }
+
+    .navbar-main {
+      display: flex;
+      align-items: center;
+      padding: 0 1.25rem;
+      height: 52px;
+      gap: 0.5rem;
+    }
+
+    .navbar-brand {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: white;
+      letter-spacing: -0.3px;
+      white-space: nowrap;
+      margin-right: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .navbar-tabs {
+      display: flex;
+      flex: 1;
+      align-self: stretch;
+      align-items: stretch;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .navbar-tabs::-webkit-scrollbar { display: none; }
+
+    .tab-btn {
+      padding: 0 0.9rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: rgba(255,255,255,0.58);
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      white-space: nowrap;
+      font-family: inherit;
+      letter-spacing: 0.01em;
+      height: 100%;
+      flex-shrink: 0;
+    }
+
+    .tab-btn:hover  { color: rgba(255,255,255,0.88); }
+    .tab-btn.active { color: white; border-bottom-color: #60a5fa; }
+
+    .navbar-auth {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-left: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .auth-greeting {
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.72);
+      white-space: nowrap;
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-block;
+      padding: 0.55rem 1.2rem;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      border: none;
+      font-family: inherit;
+      letter-spacing: 0.01em;
+    }
+
+    .btn-primary          { background: #2563eb; color: white; }
+    .btn-primary:hover    { background: #1d4ed8; }
+    .btn-amber            { background: #b45309; color: white; }
+    .btn-amber:hover      { background: #92400e; }
+    .btn-green            { background: #16a34a; color: white; }
+    .btn-green:hover      { background: #15803d; }
+    .btn-white            { background: white;   color: #0f2d52; }
+    .btn-white:hover      { background: #f1f5f9; }
+    .btn-nav              { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.85); border: 1px solid rgba(255,255,255,0.18); padding: 0.35rem 0.8rem; font-size: 0.78rem; }
+    .btn-nav:hover        { background: rgba(255,255,255,0.2); color: white; }
+    .btn-nav-solid        { background: #2563eb; color: white; padding: 0.35rem 0.8rem; font-size: 0.78rem; }
+    .btn-nav-solid:hover  { background: #1d4ed8; }
+    .btn-sm               { padding: 0.4rem 0.85rem; font-size: 0.8rem; }
+
+    /* ── Action strip (below navbar) ── */
+    .action-strip {
+      background: #1a3e6e;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.6rem 1.25rem;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .action-strip p {
+      font-size: 0.825rem;
+      color: rgba(255,255,255,0.7);
+      flex: 1;
+      min-width: 160px;
+    }
+
+    .action-strip-buttons {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 1rem;
+    }
+
+    .modal-overlay.hidden { display: none; }
+
+    .modal {
+      background: white;
+      border-radius: 8px;
+      padding: 2rem;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.25);
+    }
+
+    .modal h3 { font-size: 1.2rem; font-weight: 700; color: #0f2d52; margin-bottom: 1.25rem; }
+
+    .modal .form-group       { margin-bottom: 1rem; }
+    .modal .form-group label { display: block; font-weight: 600; font-size: 0.875rem; color: #374151; margin-bottom: 0.3rem; }
+    .modal .form-group input { width: 100%; padding: 0.55rem 0.8rem; font-size: 0.9rem; border: 1px solid #cbd5e1; border-radius: 4px; font-family: inherit; }
+    .modal .form-group input:focus { outline: 2px solid #2563eb; outline-offset: 1px; }
+
+    .form-error   { font-size: 0.82rem; color: #dc2626; min-height: 1.2em; margin-bottom: 0.5rem; }
+    .modal-actions { display: flex; flex-direction: column; gap: 0.5rem; }
+    .modal-actions .btn { width: 100%; text-align: center; }
+    .modal-cancel  { background: none; border: none; color: #94a3b8; font-size: 0.82rem; cursor: pointer; font-family: inherit; text-align: center; margin-top: 0.25rem; }
+    .modal-switch  { font-size: 0.82rem; color: #64748b; text-align: center; margin-top: 0.75rem; }
+    .modal-switch button { background: none; border: none; color: #2563eb; font-weight: 600; cursor: pointer; font-size: 0.82rem; font-family: inherit; padding: 0; }
+
+    /* ── Tab panels ── */
+    .tab-panel        { display: block; }
+    .tab-panel.hidden { display: none; }
+
+    /* ── Section wrapper ── */
+    .section-inner {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem;
+    }
+
+    .section-tag {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: #2563eb;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      padding: 0.12rem 0.5rem;
+      border-radius: 3px;
+      margin-bottom: 0.5rem;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #0f2d52;
+      padding-bottom: 0.65rem;
+      margin-bottom: 1.25rem;
+      border-bottom: 2px solid #e2e8f0;
+      letter-spacing: -0.25px;
+    }
+
+    /* ── Search / filter rows ── */
+    .search-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .search-row input {
+      flex: 1;
+      min-width: 160px;
+      padding: 0.55rem 0.85rem;
+      font-size: 0.875rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      font-family: inherit;
+      background: white;
+      color: #1e293b;
+    }
+
+    .search-row input:focus { outline: 2px solid #2563eb; outline-offset: 1px; }
+
+    .location-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.6rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .location-row input {
+      flex: 1;
+      min-width: 160px;
+      padding: 0.55rem 0.85rem;
+      font-size: 0.875rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      font-family: inherit;
+      background: white;
+      color: #1e293b;
+    }
+
+    .location-row input:focus { outline: 2px solid #2563eb; outline-offset: 1px; }
+
+    .location-row select {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.875rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      font-family: inherit;
+      background: white;
+      color: #1e293b;
+    }
+
+    .filter-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-row label { font-weight: 600; font-size: 0.8rem; color: #64748b; }
+
+    .filter-row select,
+    .filter-row input[type="date"] {
+      padding: 0.45rem 0.7rem;
+      font-size: 0.85rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      font-family: inherit;
+      background: white;
+      color: #1e293b;
+    }
+
+    /* ── Map ── */
+    .map-wrapper {
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+
+    #map { height: 300px; }
+
+    /* ── Card grid ── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
+      gap: 1rem;
+    }
+
+    .pet-card {
+      background: white;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+      overflow: hidden;
+    }
+
+    .pet-photo {
+      width: 100%;
+      height: 148px;
+      background: #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #94a3b8;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .pet-card-body { padding: 0.9rem; }
+
+    .pet-card-body h3 { font-size: 0.95rem; font-weight: 700; color: #0f2d52; margin-bottom: 0.12rem; }
+    .pet-type  { font-size: 0.82rem; color: #64748b; font-weight: 500; margin-bottom: 0.5rem; }
+    .pet-meta  { font-size: 0.78rem; color: #64748b; margin-bottom: 0.1rem; }
+    .pet-meta-label { font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-right: 0.25rem; }
+    .pet-distance  { font-size: 0.75rem; color: #16a34a; font-weight: 600; margin-bottom: 0.1rem; }
+
+    .radius-badge {
+      display: inline-block;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 0.12rem 0.5rem;
+      border-radius: 3px;
+      margin: 0.5rem 0 0.65rem;
+      letter-spacing: 0.02em;
+    }
+
+    .card-btn-row { display: flex; flex-direction: column; gap: 0.35rem; }
+    .card-btn-row .btn { width: 100%; text-align: center; padding: 0.5rem; font-size: 0.82rem; }
+
+    #no-results {
+      display: none;
+      grid-column: 1 / -1;
+      padding: 2.5rem;
+      text-align: center;
+      color: #64748b;
+      font-size: 0.875rem;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+    }
+
+    /* ── CTA banner ── */
+    .cta-banner {
+      background: #0f2d52;
+      color: white;
+      text-align: center;
+      padding: 2rem 1.5rem;
+      margin-top: 2.5rem;
+      border-radius: 6px;
+    }
+
+    .cta-banner p { font-size: 1rem; font-weight: 600; margin-bottom: 0.9rem; }
+
+    /* ── Post form ── */
+    form {
+      background: white;
+      padding: 1.75rem;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .form-group { margin-bottom: 1rem; }
+
+    .form-group label { display: block; font-weight: 600; font-size: 0.85rem; color: #374151; margin-bottom: 0.3rem; }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 0.52rem 0.78rem;
+      font-size: 0.875rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      font-family: inherit;
+      color: #1e293b;
+      background: white;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus { outline: 2px solid #2563eb; outline-offset: 1px; }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+    form > .btn { margin-top: 0.75rem; padding: 0.65rem 1.75rem; font-size: 0.9rem; }
+
+    .form-login-note { font-size: 0.8rem; color: #64748b; margin-top: 0.75rem; }
+    .form-login-note button { background: none; border: none; color: #2563eb; font-weight: 600; cursor: pointer; font-size: 0.8rem; font-family: inherit; padding: 0; }
+
+    /* ── Checklist ── */
+    .checklist { list-style: none; max-width: 620px; }
+
+    .checklist li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.85rem;
+      padding: 0.8rem 0;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 0.9rem;
+      color: #334155;
+    }
+
+    .checklist li:last-child { border-bottom: none; }
+
+    .step-num {
+      min-width: 23px;
+      height: 23px;
+      background: #0f2d52;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 0.12rem;
+    }
+
+    /* ── Three-column tip boxes ── */
+    .three-columns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+
+    .tip-box {
+      background: white;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+      border-top: 3px solid #2563eb;
+      padding: 1.1rem 1.1rem 1.3rem;
+    }
+
+    .tip-box.tip-caution { border-top-color: #b45309; }
+    .tip-box.tip-alert   { border-top-color: #dc2626; }
+
+    .tip-box h3 { font-size: 0.78rem; font-weight: 700; color: #0f2d52; margin-bottom: 0.65rem; text-transform: uppercase; letter-spacing: 0.06em; }
+    .tip-box ul { padding-left: 1rem; font-size: 0.85rem; color: #475569; }
+    .tip-box ul li { margin-bottom: 0.4rem; }
+
+    /* ── Two-column how-to boxes ── */
+    .two-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+    .step-box {
+      background: white;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+      border-left: 3px solid #2563eb;
+      padding: 1.1rem 1.1rem 1.25rem;
+    }
+
+    .step-box h3 { font-size: 0.85rem; font-weight: 700; color: #0f2d52; margin-bottom: 0.4rem; }
+    .step-box p  { font-size: 0.85rem; color: #475569; }
+
+    /* ── Chats ── */
+    .chat-login-prompt {
+      background: white;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+      padding: 3rem 2rem;
+      text-align: center;
+      color: #64748b;
+    }
+
+    .chat-login-prompt p { margin-bottom: 0.65rem; font-size: 0.875rem; }
+    .chat-login-prompt .btn { margin-top: 0.5rem; }
+
+    .chat-layout {
+      display: grid;
+      grid-template-columns: 250px 1fr;
+      height: 500px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      overflow: hidden;
+      background: white;
+    }
+
+    .chat-sidebar {
+      border-right: 1px solid #e2e8f0;
+      overflow-y: auto;
+      background: #f8fafc;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-sidebar-title {
+      padding: 0.65rem 0.9rem;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #64748b;
+      border-bottom: 1px solid #e2e8f0;
+      flex-shrink: 0;
+    }
+
+    .chat-list-item { padding: 0.8rem 0.9rem; cursor: pointer; border-bottom: 1px solid #e2e8f0; }
+    .chat-list-item:hover  { background: #f1f5f9; }
+    .chat-list-item.active { background: #eff6ff; }
+    .chat-list-item h4 { font-size: 0.85rem; font-weight: 700; color: #0f2d52; margin-bottom: 0.1rem; }
+    .chat-list-item p  { font-size: 0.75rem; color: #94a3b8; }
+    .chat-list-empty   { padding: 1.25rem 0.9rem; font-size: 0.8rem; color: #94a3b8; text-align: center; line-height: 1.6; }
+
+    .chat-window { display: flex; flex-direction: column; overflow: hidden; }
+
+    .chat-window-header {
+      padding: 0.65rem 0.9rem;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: #0f2d52;
+      border-bottom: 1px solid #e2e8f0;
+      flex-shrink: 0;
+    }
+
+    .chat-empty-state {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #94a3b8;
+      font-size: 0.85rem;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.9rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    .message-bubble { display: flex; flex-direction: column; max-width: 75%; }
+    .message-bubble.mine { align-self: flex-end; align-items: flex-end; }
+
+    .message-sender { font-size: 0.68rem; font-weight: 600; color: #64748b; margin-bottom: 0.18rem; }
+    .message-text   { background: #f1f5f9; color: #1e293b; padding: 0.45rem 0.7rem; border-radius: 8px; font-size: 0.85rem; line-height: 1.5; word-break: break-word; }
+    .message-bubble.mine .message-text { background: #2563eb; color: white; }
+
+    .chat-input-area { padding: 0.65rem 0.75rem; border-top: 1px solid #e2e8f0; display: flex; gap: 0.5rem; flex-shrink: 0; }
+    .chat-input-area input { flex: 1; padding: 0.45rem 0.7rem; font-size: 0.85rem; border: 1px solid #cbd5e1; border-radius: 4px; font-family: inherit; }
+    .chat-input-area input:focus { outline: 2px solid #2563eb; outline-offset: 1px; }
+
+    /* ── Footer ── */
+    footer { background: #0a1f38; color: #64748b; text-align: center; padding: 1.25rem; font-size: 0.8rem; }
+
+    /* ── Mobile ── */
+    @media (max-width: 680px) {
+      .action-strip p   { display: none; }
+      .form-row         { grid-template-columns: 1fr; }
+      .three-columns    { grid-template-columns: 1fr; }
+      .two-columns      { grid-template-columns: 1fr; }
+      .chat-layout      { grid-template-columns: 1fr; grid-template-rows: 170px 1fr; height: 560px; }
+      .chat-sidebar     { border-right: none; border-bottom: 1px solid #e2e8f0; }
+      #map              { height: 220px; }
+    }
+
+  </style>
 </head>
 <body>
 
-  <header>
-    <h1>Header</h1>
-  </header>
+  <!-- ══════════════════════════════
+       Navbar
+  ══════════════════════════════ -->
+  <nav class="navbar">
+    <div class="navbar-main">
+      <span class="navbar-brand">PetAlert</span>
 
+      <div class="navbar-tabs">
+        <button class="tab-btn active" data-tab="lost-pets"   onclick="showTab('lost-pets')">Lost Pets</button>
+        <button class="tab-btn"        data-tab="post-pet"    onclick="showTab('post-pet')">Report a Pet</button>
+        <button class="tab-btn"        data-tab="what-to-do"  onclick="showTab('what-to-do')">What To Do</button>
+        <button class="tab-btn"        data-tab="how-to-help" onclick="showTab('how-to-help')">How to Help</button>
+        <button class="tab-btn"        data-tab="tips"        onclick="showTab('tips')">Tips</button>
+        <button class="tab-btn"        data-tab="chats"       onclick="showTab('chats')">Chats</button>
+      </div>
+
+      <div class="navbar-auth">
+        <div id="auth-logged-out">
+          <button class="btn btn-nav"       onclick="openModal('login')">Log In</button>
+          <button class="btn btn-nav-solid" onclick="openModal('signup')" style="margin-left:0.3rem;">Sign Up</button>
+        </div>
+        <div id="auth-logged-in" class="hidden" style="display:flex;align-items:center;gap:0.4rem;">
+          <span class="auth-greeting" id="auth-greeting"></span>
+          <button class="btn btn-nav" onclick="logOut()">Log Out</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Action strip (visible on all tabs) -->
+  <div class="action-strip">
+    <p>A free local tool for lost pet alerts — post, search, and connect with neighbors.</p>
+    <div class="action-strip-buttons">
+      <button class="btn btn-white btn-sm" onclick="showTab('lost-pets')">Find Your Pet</button>
+      <button class="btn btn-amber btn-sm" onclick="showTab('post-pet')">Report a Lost Pet</button>
+      <button class="btn btn-nav  btn-sm" onclick="showTab('how-to-help')">How to Help</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════
+       Modals
+  ══════════════════════════════ -->
+  <div id="modal-overlay" class="modal-overlay hidden" onclick="closeModalIfOverlay(event)">
+
+    <div id="modal-login" class="modal hidden">
+      <h3>Log In</h3>
+      <div class="form-group">
+        <label for="login-email">Email</label>
+        <input type="email" id="login-email" placeholder="you@example.com" />
+      </div>
+      <div class="form-group">
+        <label for="login-password">Password</label>
+        <input type="password" id="login-password" placeholder="Your password" />
+      </div>
+      <p class="form-error" id="login-error"></p>
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="submitLogin()">Log In</button>
+        <button class="modal-cancel"    onclick="closeModal()">Cancel</button>
+      </div>
+      <p class="modal-switch">No account? <button onclick="switchModal('signup')">Sign Up</button></p>
+    </div>
+
+    <div id="modal-signup" class="modal hidden">
+      <h3>Create an Account</h3>
+      <div class="form-group">
+        <label for="signup-name">Your name</label>
+        <input type="text" id="signup-name" placeholder="e.g. Sarah" />
+      </div>
+      <div class="form-group">
+        <label for="signup-email">Email</label>
+        <input type="email" id="signup-email" placeholder="you@example.com" />
+      </div>
+      <div class="form-group">
+        <label for="signup-password">Password</label>
+        <input type="password" id="signup-password" placeholder="Choose a password" />
+      </div>
+      <p class="form-error" id="signup-error"></p>
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="submitSignup()">Sign Up</button>
+        <button class="modal-cancel"    onclick="closeModal()">Cancel</button>
+      </div>
+      <p class="modal-switch">Already have an account? <button onclick="switchModal('login')">Log In</button></p>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════
+       Tab panels
+  ══════════════════════════════ -->
   <main>
 
-    <section id="lost-pets">
-      <h2>Recently Reported Lost Pets</h2>
-    </section>
+    <!-- ── Lost Pets ── -->
+    <div class="tab-panel" id="tab-lost-pets">
+      <div class="section-inner">
+        <span class="section-tag">Listings</span>
+        <h2>Recently Reported Lost Pets</h2>
 
-    <section id="post-pet">
-      <h2>Post Your Own Missing Pet</h2>
-    </section>
+        <!-- Name / type search -->
+        <div class="search-row">
+          <input id="search-input"    type="text" placeholder="Search by pet name or type…" />
+          <input id="filter-location-text" type="text" placeholder="Filter by area (e.g. Oak Avenue)…" />
+        </div>
 
-    <section id="what-to-do">
-      <h2>What To Do If Your Pet Is Missing</h2>
-    </section>
+        <!-- Location + radius search -->
+        <div class="location-row">
+          <input id="user-location-input" type="text" placeholder="Your location (e.g. 123 Main St, Toronto)" />
+          <select id="radius-select">
+            <option value="0">Any distance</option>
+            <option value="1">Within 1 km</option>
+            <option value="5">Within 5 km</option>
+            <option value="10">Within 10 km</option>
+            <option value="25">Within 25 km</option>
+          </select>
+          <button class="btn btn-primary btn-sm" id="location-search-btn" onclick="searchUserLocation()">Search Area</button>
+          <button class="btn btn-nav   btn-sm" onclick="useMyGPS()" title="Use my current location">Use My Location</button>
+        </div>
 
-    <section id="how-to-help">
-      <h2>How to Help a Neighbor's Lost Pet</h2>
-    </section>
+        <!-- Type + date filters -->
+        <div class="filter-row">
+          <label for="filter-type">Animal type</label>
+          <select id="filter-type" onchange="filterCards()">
+            <option value="">All animals</option>
+            <option value="dog">Dog</option>
+            <option value="cat">Cat</option>
+            <option value="bird">Bird</option>
+            <option value="rabbit">Rabbit</option>
+            <option value="other">Other</option>
+          </select>
+          <label for="filter-date">Date reported</label>
+          <input type="date" id="filter-date" onchange="filterCards()" />
+        </div>
 
-    <section id="tips">
-      <h2>Tips and How to Use This Site</h2>
-    </section>
+        <!-- Map -->
+        <div class="map-wrapper">
+          <div id="map"></div>
+        </div>
 
-    <section id="chats">
-      <h2>Chats</h2>
-    </section>
+        <!-- Card grid -->
+        <div class="card-grid" id="card-grid">
+          <div id="no-results">No pets match your search. Try different keywords or clear the filters.</div>
+        </div>
 
-    <section id="cta">
-      <h2>Call to Action</h2>
-    </section>
+        <div class="cta-banner">
+          <p>Is your pet missing?</p>
+          <button class="btn btn-amber" onclick="showTab('post-pet')">Report a Lost Pet</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Report a Pet ── -->
+    <div class="tab-panel hidden" id="tab-post-pet">
+      <div class="section-inner">
+        <span class="section-tag">Post an alert</span>
+        <h2>Post Your Own Missing Pet</h2>
+        <form id="pet-form" onsubmit="submitPetForm(event)">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="pet-name">Pet name</label>
+              <input type="text" id="pet-name" placeholder="e.g. Biscuit" />
+            </div>
+            <div class="form-group">
+              <label for="pet-type">Animal type</label>
+              <select id="pet-type">
+                <option value="">Choose one…</option>
+                <option value="dog">Dog</option>
+                <option value="cat">Cat</option>
+                <option value="bird">Bird</option>
+                <option value="rabbit">Rabbit</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="pet-color">Color</label>
+              <input type="text" id="pet-color" placeholder="e.g. golden, black and white" />
+            </div>
+            <div class="form-group">
+              <label for="pet-size">Size</label>
+              <select id="pet-size">
+                <option value="">Choose one…</option>
+                <option value="small">Small</option>
+                <option value="medium">Medium</option>
+                <option value="large">Large</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="last-seen-location">Last seen location</label>
+            <input type="text" id="last-seen-location" placeholder="e.g. Maple Street Park, near the tennis courts" />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="last-seen-date">Date last seen</label>
+              <input type="date" id="last-seen-date" />
+            </div>
+            <div class="form-group">
+              <label for="last-seen-time">Time last seen</label>
+              <input type="time" id="last-seen-time" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="pet-photo">Photo (optional but helpful)</label>
+            <input type="file" id="pet-photo" accept="image/*" />
+          </div>
+
+          <div class="form-group">
+            <label for="search-radius">Search area</label>
+            <select id="search-radius">
+              <option value="">Choose one…</option>
+              <option value="1">Small — Within 1 km</option>
+              <option value="5">Medium — Within 5 km</option>
+              <option value="10">Large — Within 10 km</option>
+            </select>
+          </div>
+
+          <button type="submit" class="btn btn-amber">Report a Lost Pet</button>
+          <p class="form-login-note" id="form-login-note">
+            You need to be logged in to post.
+            <button type="button" onclick="openModal('login')">Log In</button> or
+            <button type="button" onclick="openModal('signup')">Sign Up</button>
+          </p>
+        </form>
+      </div>
+    </div>
+
+    <!-- ── What To Do ── -->
+    <div class="tab-panel hidden" id="tab-what-to-do">
+      <div class="section-inner">
+        <span class="section-tag">Guidance</span>
+        <h2>What To Do If Your Pet Is Missing</h2>
+        <ul class="checklist">
+          <li><span class="step-num">1</span> Post on this site right away so neighbors can see the alert</li>
+          <li><span class="step-num">2</span> Share the post on social media to reach more people</li>
+          <li><span class="step-num">3</span> Check local animal shelters — call or visit in person</li>
+          <li><span class="step-num">4</span> Notify your neighbors in person or in a local group chat</li>
+          <li><span class="step-num">5</span> Put up printed flyers in your neighborhood with a clear photo</li>
+          <li><span class="step-num">6</span> Check back on this site often — someone may report a sighting</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ── How to Help ── -->
+    <div class="tab-panel hidden" id="tab-how-to-help">
+      <div class="section-inner">
+        <span class="section-tag">For neighbors</span>
+        <h2>How to Help a Neighbor's Lost Pet</h2>
+        <div class="three-columns">
+          <div class="tip-box">
+            <h3>What to do</h3>
+            <ul>
+              <li>Click "Contact Owner" on the pet card to message the owner</li>
+              <li>Take a photo if it is safe to do so</li>
+              <li>Write down the exact street or landmark where you saw the animal</li>
+            </ul>
+          </div>
+          <div class="tip-box tip-caution">
+            <h3>What not to do</h3>
+            <ul>
+              <li>Do not chase the animal — it may run further away</li>
+              <li>Do not pick up the animal unless it is clearly injured</li>
+            </ul>
+          </div>
+          <div class="tip-box tip-alert">
+            <h3>If the animal seems hurt</h3>
+            <ul>
+              <li>Contact a local animal shelter or animal control right away</li>
+              <li>Stay nearby if it is safe — do not leave an injured animal alone</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tips ── -->
+    <div class="tab-panel hidden" id="tab-tips">
+      <div class="section-inner">
+        <span class="section-tag">How it works</span>
+        <h2>Tips and How to Use This Site</h2>
+        <div class="two-columns">
+          <div class="step-box">
+            <h3>How to search for a lost pet</h3>
+            <p>Go to the Lost Pets tab and type a pet name, type, or area into the search boxes. Enter your location and a radius to see only nearby listings on the map.</p>
+          </div>
+          <div class="step-box">
+            <h3>How to post a missing pet</h3>
+            <p>Go to the Report a Pet tab, fill in the form, and click "Report a Lost Pet." You need to be logged in to post.</p>
+          </div>
+          <div class="step-box">
+            <h3>How to contact an owner</h3>
+            <p>Click "Contact Owner" on any pet card to open a private chat. You need to be logged in to send messages.</p>
+          </div>
+          <div class="step-box">
+            <h3>How to mark your pet as found</h3>
+            <p>If your pet is home safe, click "Mark as Reunited" on your card. This removes the post so everyone knows the good news.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Chats ── -->
+    <div class="tab-panel hidden" id="tab-chats">
+      <div class="section-inner">
+        <span class="section-tag">Messaging</span>
+        <h2>Chats</h2>
+
+        <div id="chats-logged-out" class="chat-login-prompt">
+          <p>Your private messages will appear here.</p>
+          <p>Click "Contact Owner" on any pet card to start a conversation.<br>You need to be logged in to send or receive messages.</p>
+          <button class="btn btn-primary" onclick="openModal('login')">Log In to Chat</button>
+        </div>
+
+        <div id="chats-logged-in" class="hidden">
+          <div class="chat-layout">
+            <div class="chat-sidebar">
+              <div class="chat-sidebar-title">Conversations</div>
+              <div id="chat-list"></div>
+            </div>
+            <div class="chat-window">
+              <div class="chat-empty-state" id="chat-empty-state">Select a conversation to start chatting.</div>
+              <div id="chat-active-area" style="display:none;flex-direction:column;height:100%;">
+                <div class="chat-window-header" id="chat-window-title"></div>
+                <div class="chat-messages" id="chat-messages"></div>
+                <div class="chat-input-area">
+                  <input type="text" id="chat-input" placeholder="Type a message…" />
+                  <button class="btn btn-primary btn-sm" onclick="sendMessage()">Send</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
 
   </main>
 
   <footer>
+    <p>PetAlert — Helping pets find their way home. Free for everyone. &nbsp;|&nbsp; Map data © <a href="https://www.openstreetmap.org/copyright" style="color:#64748b;">OpenStreetMap</a> contributors.</p>
   </footer>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+
+    // ══════════════════════════════════════════
+    // State
+    // ══════════════════════════════════════════
+    var currentUser = null;
+
+    var users = [
+      { name: 'Demo Owner', email: 'demo@example.com', password: 'demo123' }
+    ];
+
+    // Sample cards — lat/lng for map markers (Toronto area)
+    var cards = [
+      { id:1, ownerEmail:'demo@example.com', name:'Biscuit', type:'dog',    color:'Golden',          size:'large',  location:'Maple Street Park', date:'2026-05-23', time:'15:00', radius:'5', lat:43.6540, lng:-79.3988 },
+      { id:2, ownerEmail:'demo@example.com', name:'Luna',    type:'cat',    color:'Black and white',  size:'small',  location:'Oak Avenue',        date:'2026-05-22', time:'19:30', radius:'2', lat:43.6611, lng:-79.3803 },
+      { id:3, ownerEmail:'demo@example.com', name:'Sunny',   type:'bird',   color:'Yellow',           size:'small',  location:'Cedar Road',        date:'2026-05-21', time:'10:00', radius:'1', lat:43.6474, lng:-79.4033 }
+    ];
+
+    var conversations    = {};
+    var nextCardId       = 4;
+    var activeConvId     = null;
+
+    // Map state
+    var leafletMap   = null;
+    var petMarkers   = [];
+    var userMarker   = null;
+    var radiusCircle = null;
+    var userLat      = null;
+    var userLng      = null;
+
+    // ══════════════════════════════════════════
+    // Tabs
+    // ══════════════════════════════════════════
+    function showTab(id) {
+      document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.add('hidden'); });
+      document.querySelectorAll('.tab-btn').forEach(function(b) {
+        b.classList.remove('active');
+        if (b.dataset.tab === id) b.classList.add('active');
+      });
+      document.getElementById('tab-' + id).classList.remove('hidden');
+
+      if (id === 'lost-pets') {
+        setTimeout(function() {
+          if (!leafletMap) initMap();
+          else leafletMap.invalidateSize();
+        }, 60);
+      }
+      if (id === 'chats') renderChatsTab();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ══════════════════════════════════════════
+    // Auth
+    // ══════════════════════════════════════════
+    function openModal(type) {
+      document.getElementById('modal-overlay').classList.remove('hidden');
+      document.getElementById('modal-login').classList.add('hidden');
+      document.getElementById('modal-signup').classList.add('hidden');
+      document.getElementById('modal-' + type).classList.remove('hidden');
+      document.getElementById('login-error').textContent  = '';
+      document.getElementById('signup-error').textContent = '';
+    }
+
+    function closeModal() {
+      document.getElementById('modal-overlay').classList.add('hidden');
+      document.getElementById('modal-login').classList.add('hidden');
+      document.getElementById('modal-signup').classList.add('hidden');
+    }
+
+    function closeModalIfOverlay(e) {
+      if (e.target === document.getElementById('modal-overlay')) closeModal();
+    }
+
+    function switchModal(type) {
+      document.getElementById('modal-login').classList.add('hidden');
+      document.getElementById('modal-signup').classList.add('hidden');
+      document.getElementById('modal-' + type).classList.remove('hidden');
+      document.getElementById('login-error').textContent  = '';
+      document.getElementById('signup-error').textContent = '';
+    }
+
+    function submitLogin() {
+      var email    = document.getElementById('login-email').value.trim().toLowerCase();
+      var password = document.getElementById('login-password').value;
+      var found    = null;
+      for (var i = 0; i < users.length; i++) {
+        if (users[i].email.toLowerCase() === email && users[i].password === password) { found = users[i]; break; }
+      }
+      if (!found) { document.getElementById('login-error').textContent = 'Email or password is incorrect.'; return; }
+      currentUser = found;
+      closeModal();
+      updateAuthUI();
+    }
+
+    function submitSignup() {
+      var name     = document.getElementById('signup-name').value.trim();
+      var email    = document.getElementById('signup-email').value.trim().toLowerCase();
+      var password = document.getElementById('signup-password').value;
+      var errEl    = document.getElementById('signup-error');
+      if (!name || !email || !password) { errEl.textContent = 'Please fill in all fields.'; return; }
+      for (var i = 0; i < users.length; i++) {
+        if (users[i].email.toLowerCase() === email) { errEl.textContent = 'An account with that email already exists.'; return; }
+      }
+      var newUser = { name: name, email: email, password: password };
+      users.push(newUser);
+      currentUser = newUser;
+      closeModal();
+      updateAuthUI();
+    }
+
+    function logOut() {
+      currentUser = null;
+      activeConvId = null;
+      updateAuthUI();
+    }
+
+    function updateAuthUI() {
+      var on = !!currentUser;
+      document.getElementById('auth-logged-out').classList.toggle('hidden', on);
+      document.getElementById('auth-logged-in').classList.toggle('hidden', !on);
+      if (on) document.getElementById('auth-greeting').textContent = 'Hi, ' + currentUser.name;
+      document.getElementById('form-login-note').style.display = on ? 'none' : 'block';
+      renderCards();
+      renderChatsTab();
+    }
+
+    // ══════════════════════════════════════════
+    // Cards
+    // ══════════════════════════════════════════
+    function renderCards() {
+      var grid = document.getElementById('card-grid');
+      grid.querySelectorAll('.pet-card').forEach(function(c) { c.remove(); });
+      var noResults = document.getElementById('no-results');
+      cards.slice().reverse().forEach(function(card) {
+        grid.insertBefore(buildCardEl(card), noResults);
+      });
+      filterCards();
+      updateMapMarkers();
+    }
+
+    function buildCardEl(card) {
+      var isOwner     = currentUser && currentUser.email === card.ownerEmail;
+      var el          = document.createElement('div');
+      el.className    = 'pet-card';
+      el.dataset.id   = card.id;
+      el.dataset.name = card.name.toLowerCase();
+      el.dataset.type = card.type.toLowerCase();
+      el.dataset.date = card.date || '';
+      el.dataset.loc  = (card.location || '').toLowerCase();
+
+      var typeLabel   = cap(card.type);
+      var colorInfo   = card.color ? ' — ' + esc(card.color) : '';
+      var dateLabel   = fmtDate(card.date);
+      var timeLabel   = fmtTime(card.time);
+      var radLabel    = {'1':'1 km','2':'2 km','5':'5 km','10':'10 km'}[card.radius] || (card.radius + ' km');
+
+      var distHtml = '';
+      if (userLat !== null && card.lat && card.lng) {
+        var d = haversine(userLat, userLng, card.lat, card.lng);
+        distHtml = '<p class="pet-distance">' + d.toFixed(1) + ' km from your location</p>';
+      }
+
+      var btnHtml = isOwner
+        ? '<button class="btn btn-green" onclick="markAsReunited(' + card.id + ')">Mark as Reunited</button>'
+        : '<button class="btn btn-primary" onclick="contactOwner(' + card.id + ')">Contact Owner</button>';
+
+      el.innerHTML =
+        '<div class="pet-photo">No photo uploaded</div>' +
+        '<div class="pet-card-body">' +
+          '<h3>' + esc(card.name) + '</h3>' +
+          '<p class="pet-type">' + typeLabel + colorInfo + '</p>' +
+          '<p class="pet-meta"><span class="pet-meta-label">Location</span>' + esc(card.location) + '</p>' +
+          distHtml +
+          '<p class="pet-meta"><span class="pet-meta-label">Last seen</span>' + dateLabel + (timeLabel ? ' at ' + timeLabel : '') + '</p>' +
+          '<span class="radius-badge">Within ' + radLabel + '</span>' +
+          '<div class="card-btn-row">' + btnHtml + '</div>' +
+        '</div>';
+
+      return el;
+    }
+
+    function markAsReunited(cardId) {
+      if (!currentUser) return;
+      cards = cards.filter(function(c) { return c.id !== cardId; });
+      delete conversations[cardId];
+      if (activeConvId === cardId) activeConvId = null;
+      renderCards();
+      renderChatsTab();
+    }
+
+    function submitPetForm(event) {
+      event.preventDefault();
+      if (!currentUser) { openModal('login'); return; }
+
+      var name     = document.getElementById('pet-name').value.trim();
+      var type     = document.getElementById('pet-type').value;
+      var color    = document.getElementById('pet-color').value.trim();
+      var size     = document.getElementById('pet-size').value;
+      var location = document.getElementById('last-seen-location').value.trim();
+      var date     = document.getElementById('last-seen-date').value;
+      var time     = document.getElementById('last-seen-time').value;
+      var radius   = document.getElementById('search-radius').value || '5';
+
+      if (!name || !type || !location) {
+        alert('Please fill in the pet name, animal type, and last seen location.');
+        return;
+      }
+
+      var newCard = { id: nextCardId++, ownerEmail: currentUser.email, name: name, type: type, color: color, size: size, location: location, date: date, time: time, radius: radius, lat: null, lng: null };
+      cards.unshift(newCard);
+      document.getElementById('pet-form').reset();
+      renderCards();
+      showTab('lost-pets');
+
+      // Geocode location in background to add map pin
+      nominatim(location, function(lat, lng) {
+        newCard.lat = lat;
+        newCard.lng = lng;
+        updateMapMarkers();
+      });
+    }
+
+    // ══════════════════════════════════════════
+    // Filters
+    // ══════════════════════════════════════════
+    function filterCards() {
+      var query    = document.getElementById('search-input').value.toLowerCase().trim();
+      var locText  = document.getElementById('filter-location-text').value.toLowerCase().trim();
+      var type     = document.getElementById('filter-type').value.toLowerCase();
+      var date     = document.getElementById('filter-date').value;
+      var radius   = parseFloat(document.getElementById('radius-select').value) || 0;
+      var visible  = 0;
+
+      document.querySelectorAll('.pet-card').forEach(function(el) {
+        var name  = el.dataset.name || '';
+        var ctype = el.dataset.type || '';
+        var cdate = el.dataset.date || '';
+        var cloc  = el.dataset.loc  || '';
+        var cid   = parseInt(el.dataset.id, 10);
+
+        // Find card object for distance
+        var cardObj = null;
+        for (var i = 0; i < cards.length; i++) { if (cards[i].id === cid) { cardObj = cards[i]; break; } }
+
+        var distOk = true;
+        if (radius > 0 && userLat !== null && cardObj && cardObj.lat) {
+          distOk = haversine(userLat, userLng, cardObj.lat, cardObj.lng) <= radius;
+        }
+
+        var ok =
+          (!query   || name.includes(query) || ctype.includes(query)) &&
+          (!locText || cloc.includes(locText)) &&
+          (!type    || ctype === type) &&
+          (!date    || cdate === date) &&
+          distOk;
+
+        el.style.display = ok ? '' : 'none';
+        if (ok) visible++;
+      });
+
+      document.getElementById('no-results').style.display = visible === 0 ? 'block' : 'none';
+    }
+
+    // ══════════════════════════════════════════
+    // Map
+    // ══════════════════════════════════════════
+    function initMap() {
+      if (leafletMap) return;
+
+      leafletMap = L.map('map');
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 18
+      }).addTo(leafletMap);
+
+      updateMapMarkers();
+    }
+
+    function updateMapMarkers() {
+      if (!leafletMap) return;
+
+      petMarkers.forEach(function(m) { leafletMap.removeLayer(m); });
+      petMarkers = [];
+
+      cards.forEach(function(card) {
+        if (!card.lat || !card.lng) return;
+        var m = L.circleMarker([card.lat, card.lng], {
+          radius: 9, color: '#0f2d52', fillColor: '#2563eb', fillOpacity: 0.85, weight: 2
+        }).addTo(leafletMap)
+          .bindPopup('<b>' + esc(card.name) + '</b><br>' + cap(card.type) + '<br><small>' + esc(card.location) + '</small>');
+        petMarkers.push(m);
+      });
+
+      // Fit map to show all markers (only if no user location set)
+      if (petMarkers.length > 0 && userLat === null) {
+        var group = L.featureGroup(petMarkers);
+        leafletMap.fitBounds(group.getBounds().pad(0.35));
+      }
+    }
+
+    function searchUserLocation() {
+      var loc = document.getElementById('user-location-input').value.trim();
+      if (!loc) { clearUserLocation(); return; }
+
+      var btn = document.getElementById('location-search-btn');
+      btn.textContent = 'Searching…';
+      btn.disabled = true;
+
+      nominatim(loc, function(lat, lng) {
+        btn.textContent = 'Search Area';
+        btn.disabled = false;
+
+        if (lat === null) {
+          alert('Location "' + loc + '" not found. Please try a more specific address or city name.');
+          return;
+        }
+
+        userLat = lat;
+        userLng = lng;
+
+        if (userMarker)   { leafletMap.removeLayer(userMarker);   userMarker   = null; }
+        if (radiusCircle) { leafletMap.removeLayer(radiusCircle); radiusCircle = null; }
+
+        userMarker = L.marker([userLat, userLng])
+          .addTo(leafletMap)
+          .bindPopup('<b>Your location</b><br>' + esc(loc))
+          .openPopup();
+
+        drawRadiusCircle();
+        renderCards();
+      });
+    }
+
+    function useMyGPS() {
+      if (!navigator.geolocation) { alert('Your browser does not support location access.'); return; }
+      navigator.geolocation.getCurrentPosition(function(pos) {
+        userLat = pos.coords.latitude;
+        userLng = pos.coords.longitude;
+        document.getElementById('user-location-input').value = 'My Location';
+
+        if (userMarker)   { leafletMap.removeLayer(userMarker);   userMarker   = null; }
+        if (radiusCircle) { leafletMap.removeLayer(radiusCircle); radiusCircle = null; }
+
+        userMarker = L.marker([userLat, userLng])
+          .addTo(leafletMap)
+          .bindPopup('<b>Your location</b>')
+          .openPopup();
+
+        drawRadiusCircle();
+        renderCards();
+      }, function() {
+        alert('Could not get your location. Please type it instead.');
+      });
+    }
+
+    function clearUserLocation() {
+      userLat = null; userLng = null;
+      if (userMarker)   { leafletMap.removeLayer(userMarker);   userMarker   = null; }
+      if (radiusCircle) { leafletMap.removeLayer(radiusCircle); radiusCircle = null; }
+      renderCards();
+    }
+
+    function drawRadiusCircle() {
+      if (radiusCircle) { leafletMap.removeLayer(radiusCircle); radiusCircle = null; }
+      var r = parseFloat(document.getElementById('radius-select').value) || 0;
+      if (r > 0 && userLat !== null) {
+        radiusCircle = L.circle([userLat, userLng], {
+          radius: r * 1000, color: '#2563eb', fillColor: '#2563eb', fillOpacity: 0.07, weight: 1.5
+        }).addTo(leafletMap);
+        leafletMap.fitBounds(radiusCircle.getBounds().pad(0.1));
+      } else if (userLat !== null) {
+        leafletMap.setView([userLat, userLng], 14);
+      }
+    }
+
+    // ══════════════════════════════════════════
+    // Chats
+    // ══════════════════════════════════════════
+    function contactOwner(cardId) {
+      if (!currentUser) { openModal('login'); return; }
+      var card = null;
+      for (var i = 0; i < cards.length; i++) { if (cards[i].id === cardId) { card = cards[i]; break; } }
+      if (!card) return;
+
+      if (card.ownerEmail === currentUser.email) {
+        alert('This is your own post. Other users can message you by clicking "Contact Owner".');
+        return;
+      }
+
+      if (!conversations[cardId]) {
+        conversations[cardId] = { cardName: card.name, messages: [] };
+      }
+
+      activeConvId = cardId;
+      showTab('chats');
+    }
+
+    function renderChatsTab() {
+      var on = !!currentUser;
+      document.getElementById('chats-logged-out').classList.toggle('hidden', on);
+      document.getElementById('chats-logged-in').classList.toggle('hidden', !on);
+      if (!on) return;
+
+      var listEl = document.getElementById('chat-list');
+      listEl.innerHTML = '';
+      var ids = Object.keys(conversations);
+
+      if (ids.length === 0) {
+        listEl.innerHTML = '<p class="chat-list-empty">No conversations yet.<br>Click "Contact Owner" on a pet card to start one.</p>';
+      } else {
+        ids.forEach(function(id) {
+          var conv = conversations[id];
+          var item = document.createElement('div');
+          item.className = 'chat-list-item' + (String(activeConvId) === id ? ' active' : '');
+          item.onclick   = (function(cid) { return function() { activeConvId = parseInt(cid, 10); renderChatsTab(); }; })(id);
+          var last = conv.messages.length > 0 ? conv.messages[conv.messages.length - 1].text : 'No messages yet';
+          if (last.length > 34) last = last.slice(0, 34) + '…';
+          item.innerHTML = '<h4>' + esc(conv.cardName) + '</h4><p>' + esc(last) + '</p>';
+          listEl.appendChild(item);
+        });
+      }
+
+      var emptyState = document.getElementById('chat-empty-state');
+      var activeArea = document.getElementById('chat-active-area');
+      var conv       = activeConvId ? conversations[activeConvId] : null;
+
+      if (conv) {
+        emptyState.style.display = 'none';
+        activeArea.style.display = 'flex';
+        document.getElementById('chat-window-title').textContent = 'Chat about: ' + conv.cardName;
+        renderMessages();
+      } else {
+        emptyState.style.display = 'flex';
+        activeArea.style.display = 'none';
+      }
+    }
+
+    function renderMessages() {
+      var conv = conversations[activeConvId];
+      if (!conv) return;
+      var box = document.getElementById('chat-messages');
+      box.innerHTML = '';
+      conv.messages.forEach(function(msg) {
+        var mine = currentUser && msg.senderName === currentUser.name;
+        var div  = document.createElement('div');
+        div.className = 'message-bubble' + (mine ? ' mine' : '');
+        div.innerHTML =
+          '<div class="message-sender">' + esc(msg.senderName) + ' · ' + esc(msg.time) + '</div>' +
+          '<div class="message-text">'   + esc(msg.text)       + '</div>';
+        box.appendChild(div);
+      });
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function sendMessage() {
+      if (!currentUser || !activeConvId) return;
+      var input = document.getElementById('chat-input');
+      var text  = input.value.trim();
+      if (!text) return;
+      var conv  = conversations[activeConvId];
+      if (!conv) return;
+      var now   = new Date();
+      var h     = now.getHours() % 12 || 12;
+      var min   = String(now.getMinutes()).padStart(2, '0');
+      var ampm  = now.getHours() >= 12 ? 'PM' : 'AM';
+      conv.messages.push({ senderName: currentUser.name, text: text, time: h + ':' + min + ' ' + ampm });
+      input.value = '';
+      renderMessages();
+      renderChatsTab();
+    }
+
+    // ══════════════════════════════════════════
+    // Helpers
+    // ══════════════════════════════════════════
+    function esc(s) {
+      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+
+    function fmtDate(d) {
+      if (!d) return '';
+      var p = d.split('-');
+      var m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return m[parseInt(p[1],10)-1] + ' ' + parseInt(p[2],10) + ', ' + p[0];
+    }
+
+    function fmtTime(t) {
+      if (!t) return '';
+      if (t.includes('AM') || t.includes('PM')) return t;
+      var p = t.split(':'), h = parseInt(p[0],10), m = p[1];
+      return (h % 12 || 12) + ':' + m + (h >= 12 ? ' PM' : ' AM');
+    }
+
+    function haversine(lat1, lng1, lat2, lng2) {
+      var R = 6371, r = Math.PI / 180;
+      var dLat = (lat2 - lat1) * r, dLng = (lng2 - lng1) * r;
+      var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1*r) * Math.cos(lat2*r) *
+              Math.sin(dLng/2) * Math.sin(dLng/2);
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    function nominatim(query, cb) {
+      fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(query), {
+        headers: { 'Accept-Language': 'en' }
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data && data[0]) cb(parseFloat(data[0].lat), parseFloat(data[0].lon));
+        else cb(null, null);
+      })
+      .catch(function() { cb(null, null); });
+    }
+
+    // ══════════════════════════════════════════
+    // Event listeners & init
+    // ══════════════════════════════════════════
+    document.getElementById('search-input').addEventListener('input', filterCards);
+    document.getElementById('filter-location-text').addEventListener('input', filterCards);
+    document.getElementById('radius-select').addEventListener('change', function() {
+      drawRadiusCircle();
+      filterCards();
+    });
+    document.getElementById('user-location-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') searchUserLocation();
+    });
+    document.getElementById('chat-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    // Init
+    updateAuthUI();
+    setTimeout(initMap, 80);
+
+  </script>
 </body>
 </html>
