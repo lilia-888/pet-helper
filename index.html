@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PetAlert — Lost Pet Finder</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
 
     /* ── Base ── */
@@ -120,7 +121,7 @@
     .btn-nav-solid:hover  { background: #1d4ed8; }
     .btn-sm               { padding: 0.4rem 0.85rem; font-size: 0.8rem; }
 
-    /* ── Action strip (below navbar) ── */
+    /* ── Action strip ── */
     .action-strip {
       background: #1a3e6e;
       display: flex;
@@ -168,13 +169,12 @@
     }
 
     .modal h3 { font-size: 1.2rem; font-weight: 700; color: #0f2d52; margin-bottom: 1.25rem; }
-
     .modal .form-group       { margin-bottom: 1rem; }
     .modal .form-group label { display: block; font-weight: 600; font-size: 0.875rem; color: #374151; margin-bottom: 0.3rem; }
     .modal .form-group input { width: 100%; padding: 0.55rem 0.8rem; font-size: 0.9rem; border: 1px solid #cbd5e1; border-radius: 4px; font-family: inherit; }
     .modal .form-group input:focus { outline: 2px solid #2563eb; outline-offset: 1px; }
 
-    .form-error   { font-size: 0.82rem; color: #dc2626; min-height: 1.2em; margin-bottom: 0.5rem; }
+    .form-error    { font-size: 0.82rem; color: #dc2626; min-height: 1.2em; margin-bottom: 0.5rem; }
     .modal-actions { display: flex; flex-direction: column; gap: 0.5rem; }
     .modal-actions .btn { width: 100%; text-align: center; }
     .modal-cancel  { background: none; border: none; color: #94a3b8; font-size: 0.82rem; cursor: pointer; font-family: inherit; text-align: center; margin-top: 0.25rem; }
@@ -204,6 +204,13 @@
       padding: 0.12rem 0.5rem;
       border-radius: 3px;
       margin-bottom: 0.5rem;
+    }
+
+    .section-desc {
+      font-size: 0.9rem;
+      color: #64748b;
+      margin-bottom: 1.25rem;
+      margin-top: -0.5rem;
     }
 
     h2 {
@@ -280,7 +287,7 @@
 
     .filter-row label { font-weight: 600; font-size: 0.8rem; color: #64748b; }
 
-    .filter-row select,
+    .filter-row input[type="text"],
     .filter-row input[type="date"] {
       padding: 0.45rem 0.7rem;
       font-size: 0.85rem;
@@ -291,6 +298,8 @@
       color: #1e293b;
     }
 
+    .filter-row input[type="date"] { min-width: 140px; }
+
     /* ── Map ── */
     .map-wrapper {
       border: 1px solid #e2e8f0;
@@ -299,7 +308,8 @@
       margin-bottom: 1.5rem;
     }
 
-    #map { height: 300px; }
+    #map      { height: 300px; }
+    #help-map { height: 340px; }
 
     /* ── Card grid ── */
     .card-grid {
@@ -331,12 +341,11 @@
     }
 
     .pet-card-body { padding: 0.9rem; }
-
     .pet-card-body h3 { font-size: 0.95rem; font-weight: 700; color: #0f2d52; margin-bottom: 0.12rem; }
-    .pet-type  { font-size: 0.82rem; color: #64748b; font-weight: 500; margin-bottom: 0.5rem; }
-    .pet-meta  { font-size: 0.78rem; color: #64748b; margin-bottom: 0.1rem; }
-    .pet-meta-label { font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-right: 0.25rem; }
-    .pet-distance  { font-size: 0.75rem; color: #16a34a; font-weight: 600; margin-bottom: 0.1rem; }
+    .pet-type         { font-size: 0.82rem; color: #64748b; font-weight: 500; margin-bottom: 0.5rem; }
+    .pet-meta         { font-size: 0.78rem; color: #64748b; margin-bottom: 0.1rem; }
+    .pet-meta-label   { font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-right: 0.25rem; }
+    .pet-distance     { font-size: 0.75rem; color: #16a34a; font-weight: 600; margin-bottom: 0.1rem; }
 
     .radius-badge {
       display: inline-block;
@@ -387,7 +396,6 @@
     }
 
     .form-group { margin-bottom: 1rem; }
-
     .form-group label { display: block; font-weight: 600; font-size: 0.85rem; color: #374151; margin-bottom: 0.3rem; }
 
     .form-group input,
@@ -406,7 +414,6 @@
     .form-group select:focus { outline: 2px solid #2563eb; outline-offset: 1px; }
 
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-
     form > .btn { margin-top: 0.75rem; padding: 0.65rem 1.75rem; font-size: 0.9rem; }
 
     .form-login-note { font-size: 0.8rem; color: #64748b; margin-top: 0.75rem; }
@@ -473,6 +480,110 @@
 
     .step-box h3 { font-size: 0.85rem; font-weight: 700; color: #0f2d52; margin-bottom: 0.4rem; }
     .step-box p  { font-size: 0.85rem; color: #475569; }
+
+    /* ── Find Help tab ── */
+    .help-search-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .help-search-row input {
+      flex: 1;
+      min-width: 200px;
+      padding: 0.55rem 0.85rem;
+      font-size: 0.875rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      font-family: inherit;
+      background: white;
+      color: #1e293b;
+    }
+
+    .help-search-row input:focus { outline: 2px solid #2563eb; outline-offset: 1px; }
+
+    .help-search-row select {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.875rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      font-family: inherit;
+      background: white;
+      color: #1e293b;
+    }
+
+    .help-layout {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 1.25rem;
+      align-items: start;
+    }
+
+    .help-prompt {
+      font-size: 0.875rem;
+      color: #94a3b8;
+      padding: 2rem 1rem;
+      text-align: center;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+    }
+
+    .vet-results-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    .vet-card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      border-left: 3px solid #2563eb;
+      padding: 0.9rem 1rem;
+    }
+
+    .vet-card.shelter { border-left-color: #16a34a; }
+
+    .vet-card h4 { font-size: 0.875rem; font-weight: 700; color: #0f2d52; margin-bottom: 0.2rem; }
+    .vet-type-badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 0.1rem 0.4rem;
+      border-radius: 3px;
+      margin-bottom: 0.35rem;
+    }
+
+    .vet-type-badge.vet      { background: #eff6ff; color: #1d4ed8; }
+    .vet-type-badge.shelter  { background: #f0fdf4; color: #15803d; }
+    .vet-card-meta { font-size: 0.78rem; color: #64748b; margin-top: 0.15rem; }
+    .vet-card-dist { font-size: 0.75rem; color: #16a34a; font-weight: 600; margin-top: 0.2rem; }
+    .vet-no-results { font-size: 0.875rem; color: #64748b; padding: 1.5rem 1rem; text-align: center; background: white; border: 1px solid #e2e8f0; border-radius: 6px; }
+    .vet-loading { font-size: 0.875rem; color: #64748b; padding: 1.5rem 1rem; text-align: center; }
+
+    /* ── Legend ── */
+    .map-legend {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      font-size: 0.78rem;
+      color: #64748b;
+      margin-bottom: 0.5rem;
+    }
+
+    .legend-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 0.3rem;
+      vertical-align: middle;
+    }
 
     /* ── Chats ── */
     .chat-login-prompt {
@@ -576,16 +687,15 @@
       .two-columns      { grid-template-columns: 1fr; }
       .chat-layout      { grid-template-columns: 1fr; grid-template-rows: 170px 1fr; height: 560px; }
       .chat-sidebar     { border-right: none; border-bottom: 1px solid #e2e8f0; }
-      #map              { height: 220px; }
+      #map, #help-map   { height: 220px; }
+      .help-layout      { grid-template-columns: 1fr; }
     }
 
   </style>
 </head>
 <body>
 
-  <!-- ══════════════════════════════
-       Navbar
-  ══════════════════════════════ -->
+  <!-- Navbar -->
   <nav class="navbar">
     <div class="navbar-main">
       <span class="navbar-brand">PetAlert</span>
@@ -593,6 +703,7 @@
       <div class="navbar-tabs">
         <button class="tab-btn active" data-tab="lost-pets"   onclick="showTab('lost-pets')">Lost Pets</button>
         <button class="tab-btn"        data-tab="post-pet"    onclick="showTab('post-pet')">Report a Pet</button>
+        <button class="tab-btn"        data-tab="find-help"   onclick="showTab('find-help')">Find Vets &amp; Shelters</button>
         <button class="tab-btn"        data-tab="what-to-do"  onclick="showTab('what-to-do')">What To Do</button>
         <button class="tab-btn"        data-tab="how-to-help" onclick="showTab('how-to-help')">How to Help</button>
         <button class="tab-btn"        data-tab="tips"        onclick="showTab('tips')">Tips</button>
@@ -612,19 +723,16 @@
     </div>
   </nav>
 
-  <!-- Action strip (visible on all tabs) -->
   <div class="action-strip">
     <p>A free local tool for lost pet alerts — post, search, and connect with neighbors.</p>
     <div class="action-strip-buttons">
       <button class="btn btn-white btn-sm" onclick="showTab('lost-pets')">Find Your Pet</button>
       <button class="btn btn-amber btn-sm" onclick="showTab('post-pet')">Report a Lost Pet</button>
-      <button class="btn btn-nav  btn-sm" onclick="showTab('how-to-help')">How to Help</button>
+      <button class="btn btn-nav  btn-sm" onclick="showTab('find-help')">Find Vets &amp; Shelters</button>
     </div>
   </div>
 
-  <!-- ══════════════════════════════
-       Modals
-  ══════════════════════════════ -->
+  <!-- Modals -->
   <div id="modal-overlay" class="modal-overlay hidden" onclick="closeModalIfOverlay(event)">
 
     <div id="modal-login" class="modal hidden">
@@ -669,58 +777,59 @@
 
   </div>
 
-  <!-- ══════════════════════════════
-       Tab panels
-  ══════════════════════════════ -->
+  <!-- Tab panels -->
   <main>
 
-    <!-- ── Lost Pets ── -->
+    <!-- Lost Pets -->
     <div class="tab-panel" id="tab-lost-pets">
       <div class="section-inner">
         <span class="section-tag">Listings</span>
         <h2>Recently Reported Lost Pets</h2>
 
-        <!-- Name / type search -->
+        <!-- Pet name search -->
         <div class="search-row">
-          <input id="search-input"    type="text" placeholder="Search by pet name or type…" />
-          <input id="filter-location-text" type="text" placeholder="Filter by area (e.g. Oak Avenue)…" />
+          <input id="search-input" type="text" placeholder="Search by pet name…" oninput="filterCards()" />
         </div>
 
-        <!-- Location + radius search -->
+        <!-- Your location + radius -->
         <div class="location-row">
-          <input id="user-location-input" type="text" placeholder="Your location (e.g. 123 Main St, Toronto)" />
-          <select id="radius-select">
+          <input id="user-location-input" type="text"
+            placeholder="Your location (e.g. 123 Main St, Toronto)"
+            onblur="if(this.value.trim()) searchUserLocation()" />
+          <select id="radius-select" onchange="onRadiusChange()">
+            <option value="1">1 km radius</option>
+            <option value="5" selected>5 km radius</option>
+            <option value="10">10 km radius</option>
+            <option value="25">25 km radius</option>
             <option value="0">Any distance</option>
-            <option value="1">Within 1 km</option>
-            <option value="5">Within 5 km</option>
-            <option value="10">Within 10 km</option>
-            <option value="25">Within 25 km</option>
           </select>
-          <button class="btn btn-primary btn-sm" id="location-search-btn" onclick="searchUserLocation()">Search Area</button>
-          <button class="btn btn-nav   btn-sm" onclick="useMyGPS()" title="Use my current location">Use My Location</button>
+          <button class="btn btn-nav btn-sm" onclick="useMyGPS()">Use My Location</button>
+          <button class="btn btn-nav btn-sm" onclick="clearLocationSearch()" id="clear-loc-btn" style="display:none;">Clear</button>
         </div>
+        <p id="location-status" style="font-size:0.78rem;color:#64748b;margin-bottom:0.75rem;min-height:1.2em;"></p>
 
-        <!-- Type + date filters -->
+        <!-- Animal type + date filters -->
         <div class="filter-row">
           <label for="filter-type">Animal type</label>
-          <select id="filter-type" onchange="filterCards()">
-            <option value="">All animals</option>
-            <option value="dog">Dog</option>
-            <option value="cat">Cat</option>
-            <option value="bird">Bird</option>
-            <option value="rabbit">Rabbit</option>
-            <option value="other">Other</option>
-          </select>
-          <label for="filter-date">Date reported</label>
-          <input type="date" id="filter-date" onchange="filterCards()" />
+          <input type="text" id="filter-type" placeholder="e.g. dog, cat, rabbit…" style="width:160px;" oninput="filterCards()" />
+          <label>Date reported</label>
+          <input type="date" id="filter-date-from" onchange="filterCards()" title="From date" />
+          <span style="font-size:0.8rem;color:#94a3b8;">to</span>
+          <input type="date" id="filter-date-to" onchange="filterCards()" title="To date" />
         </div>
 
-        <!-- Map -->
+        <!-- Map legend -->
+        <div class="map-legend">
+          <span><span class="legend-dot" style="background:#2563eb;"></span>Lost pet location</span>
+          <span><span class="legend-dot" style="background:#e11d48;"></span>Your location</span>
+        </div>
+
+        <!-- Pet map -->
         <div class="map-wrapper">
           <div id="map"></div>
         </div>
 
-        <!-- Card grid -->
+        <!-- Pet cards -->
         <div class="card-grid" id="card-grid">
           <div id="no-results">No pets match your search. Try different keywords or clear the filters.</div>
         </div>
@@ -732,7 +841,7 @@
       </div>
     </div>
 
-    <!-- ── Report a Pet ── -->
+    <!-- Report a Pet -->
     <div class="tab-panel hidden" id="tab-post-pet">
       <div class="section-inner">
         <span class="section-tag">Post an alert</span>
@@ -745,14 +854,21 @@
             </div>
             <div class="form-group">
               <label for="pet-type">Animal type</label>
-              <select id="pet-type">
-                <option value="">Choose one…</option>
-                <option value="dog">Dog</option>
-                <option value="cat">Cat</option>
-                <option value="bird">Bird</option>
-                <option value="rabbit">Rabbit</option>
-                <option value="other">Other</option>
-              </select>
+              <input type="text" id="pet-type" list="animal-suggestions" placeholder="e.g. Dog, Cat, Hamster…" />
+              <datalist id="animal-suggestions">
+                <option value="Dog">
+                <option value="Cat">
+                <option value="Bird">
+                <option value="Rabbit">
+                <option value="Hamster">
+                <option value="Guinea Pig">
+                <option value="Turtle">
+                <option value="Snake">
+                <option value="Lizard">
+                <option value="Fish">
+                <option value="Ferret">
+                <option value="Horse">
+              </datalist>
             </div>
           </div>
 
@@ -774,7 +890,7 @@
 
           <div class="form-group">
             <label for="last-seen-location">Last seen location</label>
-            <input type="text" id="last-seen-location" placeholder="e.g. Maple Street Park, near the tennis courts" />
+            <input type="text" id="last-seen-location" placeholder="e.g. High Park, Toronto — be as specific as possible" />
           </div>
 
           <div class="form-row">
@@ -794,7 +910,7 @@
           </div>
 
           <div class="form-group">
-            <label for="search-radius">Search area</label>
+            <label for="search-radius">Search area radius</label>
             <select id="search-radius">
               <option value="">Choose one…</option>
               <option value="1">Small — Within 1 km</option>
@@ -813,7 +929,43 @@
       </div>
     </div>
 
-    <!-- ── What To Do ── -->
+    <!-- Find Vets & Shelters -->
+    <div class="tab-panel hidden" id="tab-find-help">
+      <div class="section-inner">
+        <span class="section-tag">Nearby resources</span>
+        <h2>Find Vets &amp; Animal Shelters</h2>
+        <p class="section-desc">Search for veterinary clinics and animal shelters near any city or address in Canada.</p>
+
+        <div class="help-search-row">
+          <input id="vet-location-input" type="text" placeholder="Enter a city or address (e.g. Toronto, Richmond Hill ON)" />
+          <select id="vet-radius-select">
+            <option value="2">Within 2 km</option>
+            <option value="5" selected>Within 5 km</option>
+            <option value="10">Within 10 km</option>
+            <option value="20">Within 20 km</option>
+          </select>
+          <button class="btn btn-primary btn-sm" id="vet-search-btn" onclick="searchVetsAndShelters()">Search</button>
+        </div>
+
+        <!-- Map legend -->
+        <div class="map-legend" style="margin-bottom:0.5rem;">
+          <span><span class="legend-dot" style="background:#2563eb;"></span>Veterinary clinic</span>
+          <span><span class="legend-dot" style="background:#16a34a;"></span>Animal shelter</span>
+          <span><span class="legend-dot" style="background:#e11d48;"></span>Your location</span>
+        </div>
+
+        <div class="help-layout">
+          <div class="map-wrapper" style="margin-bottom:0;">
+            <div id="help-map"></div>
+          </div>
+          <div id="vet-results">
+            <p class="help-prompt">Enter a location above and click Search to find nearby vets and animal shelters.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- What To Do -->
     <div class="tab-panel hidden" id="tab-what-to-do">
       <div class="section-inner">
         <span class="section-tag">Guidance</span>
@@ -829,7 +981,7 @@
       </div>
     </div>
 
-    <!-- ── How to Help ── -->
+    <!-- How to Help -->
     <div class="tab-panel hidden" id="tab-how-to-help">
       <div class="section-inner">
         <span class="section-tag">For neighbors</span>
@@ -861,7 +1013,7 @@
       </div>
     </div>
 
-    <!-- ── Tips ── -->
+    <!-- Tips -->
     <div class="tab-panel hidden" id="tab-tips">
       <div class="section-inner">
         <span class="section-tag">How it works</span>
@@ -869,15 +1021,15 @@
         <div class="two-columns">
           <div class="step-box">
             <h3>How to search for a lost pet</h3>
-            <p>Go to the Lost Pets tab and type a pet name, type, or area into the search boxes. Enter your location and a radius to see only nearby listings on the map.</p>
+            <p>Go to the Lost Pets tab and type a pet name, animal type, or area into the search boxes. Enter your location and a radius to see only nearby listings on the map.</p>
           </div>
           <div class="step-box">
             <h3>How to post a missing pet</h3>
-            <p>Go to the Report a Pet tab, fill in the form, and click "Report a Lost Pet." You need to be logged in to post.</p>
+            <p>Go to the Report a Pet tab, fill in the form with a specific location, and click "Report a Lost Pet." You need to be logged in to post.</p>
           </div>
           <div class="step-box">
-            <h3>How to contact an owner</h3>
-            <p>Click "Contact Owner" on any pet card to open a private chat. You need to be logged in to send messages.</p>
+            <h3>How to find vets and shelters</h3>
+            <p>Go to the Find Vets & Shelters tab, type in a city or address, choose a radius, and click Search. Clinics and shelters appear on the map and in the list.</p>
           </div>
           <div class="step-box">
             <h3>How to mark your pet as found</h3>
@@ -887,7 +1039,7 @@
       </div>
     </div>
 
-    <!-- ── Chats ── -->
+    <!-- Chats -->
     <div class="tab-panel hidden" id="tab-chats">
       <div class="section-inner">
         <span class="section-tag">Messaging</span>
@@ -932,32 +1084,79 @@
   <script>
 
     // ══════════════════════════════════════════
+    // Supabase — safe init (won't crash if URL not set yet)
+    // Replace these two lines with your real credentials from
+    // Supabase → Project Settings → API
+    // ══════════════════════════════════════════
+    var SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    var SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+    var sb       = null;
+    var sbReady  = false;
+
+    try {
+      if (SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_KEY !== 'YOUR_SUPABASE_ANON_KEY') {
+        sb      = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        sbReady = true;
+      }
+    } catch (e) {
+      console.warn('Supabase init failed:', e);
+    }
+
+    // ══════════════════════════════════════════
+    // Demo pets — shown when Supabase is not connected yet.
+    // These use real coordinates for real Toronto locations.
+    // ══════════════════════════════════════════
+    var DEMO_CARDS = [
+      {
+        id: 1, owner_email: 'demo@example.com',
+        name: 'Biscuit', type: 'Dog', color: 'Golden', size: 'large',
+        location: 'High Park, Toronto, ON',
+        date: '2026-05-23', time: '15:00', radius: '5',
+        lat: 43.6465, lng: -79.4637, reunited: false
+      },
+      {
+        id: 2, owner_email: 'demo@example.com',
+        name: 'Luna', type: 'Cat', color: 'Black and white', size: 'small',
+        location: 'Bloor St W & Runnymede Rd, Toronto, ON',
+        date: '2026-05-22', time: '19:30', radius: '2',
+        lat: 43.6490, lng: -79.4520, reunited: false
+      },
+      {
+        id: 3, owner_email: 'demo@example.com',
+        name: 'Sunny', type: 'Bird', color: 'Yellow', size: 'small',
+        location: "Queen's Park, Toronto, ON",
+        date: '2026-05-21', time: '10:00', radius: '1',
+        lat: 43.6629, lng: -79.3927, reunited: false
+      }
+    ];
+
+    // ══════════════════════════════════════════
     // State
     // ══════════════════════════════════════════
     var currentUser = null;
+    var users       = JSON.parse(localStorage.getItem('petalert_users') || 'null') || [];
+    var cards       = [];
+    var activeConvId = null;
+    var convPetIds   = [];
 
-    var users = [
-      { name: 'Demo Owner', email: 'demo@example.com', password: 'demo123' }
-    ];
-
-    // Sample cards — lat/lng for map markers (Toronto area)
-    var cards = [
-      { id:1, ownerEmail:'demo@example.com', name:'Biscuit', type:'dog',    color:'Golden',          size:'large',  location:'Maple Street Park', date:'2026-05-23', time:'15:00', radius:'5', lat:43.6540, lng:-79.3988 },
-      { id:2, ownerEmail:'demo@example.com', name:'Luna',    type:'cat',    color:'Black and white',  size:'small',  location:'Oak Avenue',        date:'2026-05-22', time:'19:30', radius:'2', lat:43.6611, lng:-79.3803 },
-      { id:3, ownerEmail:'demo@example.com', name:'Sunny',   type:'bird',   color:'Yellow',           size:'small',  location:'Cedar Road',        date:'2026-05-21', time:'10:00', radius:'1', lat:43.6474, lng:-79.4033 }
-    ];
-
-    var conversations    = {};
-    var nextCardId       = 4;
-    var activeConvId     = null;
-
-    // Map state
+    // Pet map state
     var leafletMap   = null;
     var petMarkers   = [];
     var userMarker   = null;
     var radiusCircle = null;
     var userLat      = null;
     var userLng      = null;
+
+    // Help map state
+    var helpMap        = null;
+    var helpMarkers    = [];
+    var helpUserMarker = null;
+    var helpRadiusCircle = null;
+
+    function saveUsers() {
+      localStorage.setItem('petalert_users', JSON.stringify(users));
+    }
 
     // ══════════════════════════════════════════
     // Tabs
@@ -976,7 +1175,12 @@
           else leafletMap.invalidateSize();
         }, 60);
       }
-      if (id === 'chats') renderChatsTab();
+      if (id === 'find-help') {
+        setTimeout(function() {
+          if (helpMap) helpMap.invalidateSize();
+        }, 60);
+      }
+      if (id === 'chats') loadConvPetIds();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -1010,38 +1214,97 @@
       document.getElementById('signup-error').textContent = '';
     }
 
-    function submitLogin() {
+    async function submitLogin() {
       var email    = document.getElementById('login-email').value.trim().toLowerCase();
       var password = document.getElementById('login-password').value;
-      var found    = null;
-      for (var i = 0; i < users.length; i++) {
-        if (users[i].email.toLowerCase() === email && users[i].password === password) { found = users[i]; break; }
+      var errEl    = document.getElementById('login-error');
+      var btn      = document.querySelector('#modal-login .btn-primary');
+      errEl.textContent = '';
+      btn.textContent   = 'Logging in…';
+      btn.disabled      = true;
+
+      var found = null;
+
+      // Try Supabase first (works across all devices)
+      if (sbReady) {
+        var result = await sb.from('accounts').select('*').eq('email', email).eq('password', password);
+        if (result.data && result.data.length > 0) found = result.data[0];
       }
-      if (!found) { document.getElementById('login-error').textContent = 'Email or password is incorrect.'; return; }
+
+      // Fall back to localStorage (same-device accounts)
+      if (!found) {
+        for (var i = 0; i < users.length; i++) {
+          if (users[i].email.toLowerCase() === email && users[i].password === password) { found = users[i]; break; }
+        }
+      }
+
+      btn.textContent = 'Log In';
+      btn.disabled    = false;
+
+      if (!found) { errEl.textContent = 'Email or password is incorrect.'; return; }
       currentUser = found;
       closeModal();
       updateAuthUI();
     }
 
-    function submitSignup() {
+    async function submitSignup() {
       var name     = document.getElementById('signup-name').value.trim();
       var email    = document.getElementById('signup-email').value.trim().toLowerCase();
       var password = document.getElementById('signup-password').value;
       var errEl    = document.getElementById('signup-error');
+      var btn      = document.querySelector('#modal-signup .btn-primary');
+
+      errEl.textContent = '';
       if (!name || !email || !password) { errEl.textContent = 'Please fill in all fields.'; return; }
-      for (var i = 0; i < users.length; i++) {
-        if (users[i].email.toLowerCase() === email) { errEl.textContent = 'An account with that email already exists.'; return; }
+
+      btn.textContent = 'Creating account…';
+      btn.disabled    = true;
+
+      // Check for duplicate email in Supabase
+      if (sbReady) {
+        var check = await sb.from('accounts').select('id').eq('email', email);
+        if (check.data && check.data.length > 0) {
+          errEl.textContent    = 'An account with that email already exists.';
+          btn.textContent      = 'Sign Up';
+          btn.disabled         = false;
+          return;
+        }
+        var insert = await sb.from('accounts').insert({ name: name, email: email, password: password }).select().single();
+        if (insert.error) {
+          errEl.textContent = 'Sign up failed — make sure the accounts table exists and RLS is off.';
+          btn.textContent   = 'Sign Up';
+          btn.disabled      = false;
+          console.error('signup:', insert.error);
+          return;
+        }
+        currentUser = insert.data;
+      } else {
+        // No Supabase — check localStorage for duplicates
+        for (var i = 0; i < users.length; i++) {
+          if (users[i].email.toLowerCase() === email) {
+            errEl.textContent = 'An account with that email already exists.';
+            btn.textContent   = 'Sign Up';
+            btn.disabled      = false;
+            return;
+          }
+        }
+        currentUser = { name: name, email: email, password: password };
       }
-      var newUser = { name: name, email: email, password: password };
-      users.push(newUser);
-      currentUser = newUser;
+
+      // Always cache in localStorage so login works offline too
+      users.push(currentUser);
+      saveUsers();
+
+      btn.textContent = 'Sign Up';
+      btn.disabled    = false;
       closeModal();
       updateAuthUI();
     }
 
     function logOut() {
-      currentUser = null;
+      currentUser  = null;
       activeConvId = null;
+      convPetIds   = [];
       updateAuthUI();
     }
 
@@ -1051,39 +1314,54 @@
       document.getElementById('auth-logged-in').classList.toggle('hidden', !on);
       if (on) document.getElementById('auth-greeting').textContent = 'Hi, ' + currentUser.name;
       document.getElementById('form-login-note').style.display = on ? 'none' : 'block';
-      renderCards();
-      renderChatsTab();
+      loadPets();
     }
 
     // ══════════════════════════════════════════
-    // Cards
+    // Pets
     // ══════════════════════════════════════════
+    async function loadPets() {
+      if (!sbReady) {
+        cards = DEMO_CARDS.slice();
+        renderCards();
+        return;
+      }
+      var result = await sb.from('pets').select('*').eq('reunited', false).order('id', { ascending: false });
+      if (result.error) {
+        console.error('loadPets:', result.error);
+        cards = DEMO_CARDS.slice();
+        renderCards();
+        return;
+      }
+      cards = result.data || [];
+      renderCards();
+    }
+
     function renderCards() {
       var grid = document.getElementById('card-grid');
       grid.querySelectorAll('.pet-card').forEach(function(c) { c.remove(); });
       var noResults = document.getElementById('no-results');
-      cards.slice().reverse().forEach(function(card) {
+      cards.forEach(function(card) {
         grid.insertBefore(buildCardEl(card), noResults);
       });
-      filterCards();
-      updateMapMarkers();
+      filterCards(); // filterCards calls updateMapMarkers internally
     }
 
     function buildCardEl(card) {
-      var isOwner     = currentUser && currentUser.email === card.ownerEmail;
-      var el          = document.createElement('div');
-      el.className    = 'pet-card';
+      var isOwner  = currentUser && currentUser.email === card.owner_email;
+      var el       = document.createElement('div');
+      el.className = 'pet-card';
       el.dataset.id   = card.id;
-      el.dataset.name = card.name.toLowerCase();
-      el.dataset.type = card.type.toLowerCase();
-      el.dataset.date = card.date || '';
+      el.dataset.name = (card.name     || '').toLowerCase();
+      el.dataset.type = (card.type     || '').toLowerCase();
+      el.dataset.date = card.date      || '';
       el.dataset.loc  = (card.location || '').toLowerCase();
 
-      var typeLabel   = cap(card.type);
-      var colorInfo   = card.color ? ' — ' + esc(card.color) : '';
-      var dateLabel   = fmtDate(card.date);
-      var timeLabel   = fmtTime(card.time);
-      var radLabel    = {'1':'1 km','2':'2 km','5':'5 km','10':'10 km'}[card.radius] || (card.radius + ' km');
+      var typeLabel = cap(card.type);
+      var colorInfo = card.color ? ' — ' + esc(card.color) : '';
+      var dateLabel = fmtDate(card.date);
+      var timeLabel = fmtTime(card.time);
+      var radLabel  = { '1':'1 km', '2':'2 km', '5':'5 km', '10':'10 km' }[String(card.radius)] || (card.radius + ' km');
 
       var distHtml = '';
       if (userLat !== null && card.lat && card.lng) {
@@ -1092,17 +1370,17 @@
       }
 
       var btnHtml = isOwner
-        ? '<button class="btn btn-green" onclick="markAsReunited(' + card.id + ')">Mark as Reunited</button>'
-        : '<button class="btn btn-primary" onclick="contactOwner(' + card.id + ')">Contact Owner</button>';
+        ? '<button class="btn btn-green"   onclick="markAsReunited(' + card.id + ')">Mark as Reunited</button>'
+        : '<button class="btn btn-primary" onclick="contactOwner('  + card.id + ')">Contact Owner</button>';
 
       el.innerHTML =
         '<div class="pet-photo">No photo uploaded</div>' +
         '<div class="pet-card-body">' +
           '<h3>' + esc(card.name) + '</h3>' +
           '<p class="pet-type">' + typeLabel + colorInfo + '</p>' +
-          '<p class="pet-meta"><span class="pet-meta-label">Location</span>' + esc(card.location) + '</p>' +
+          '<p class="pet-meta"><span class="pet-meta-label">Last seen at</span>' + esc(card.location) + '</p>' +
           distHtml +
-          '<p class="pet-meta"><span class="pet-meta-label">Last seen</span>' + dateLabel + (timeLabel ? ' at ' + timeLabel : '') + '</p>' +
+          '<p class="pet-meta"><span class="pet-meta-label">Date</span>' + dateLabel + (timeLabel ? ' at ' + timeLabel : '') + '</p>' +
           '<span class="radius-badge">Within ' + radLabel + '</span>' +
           '<div class="card-btn-row">' + btnHtml + '</div>' +
         '</div>';
@@ -1110,21 +1388,23 @@
       return el;
     }
 
-    function markAsReunited(cardId) {
+    async function markAsReunited(cardId) {
       if (!currentUser) return;
-      cards = cards.filter(function(c) { return c.id !== cardId; });
-      delete conversations[cardId];
+      if (sbReady) {
+        await sb.from('messages').delete().eq('pet_id', cardId);
+        await sb.from('pets').delete().eq('id', cardId);
+      }
       if (activeConvId === cardId) activeConvId = null;
-      renderCards();
-      renderChatsTab();
+      convPetIds = convPetIds.filter(function(id) { return id !== cardId; });
+      loadPets();
     }
 
-    function submitPetForm(event) {
+    async function submitPetForm(event) {
       event.preventDefault();
       if (!currentUser) { openModal('login'); return; }
 
       var name     = document.getElementById('pet-name').value.trim();
-      var type     = document.getElementById('pet-type').value;
+      var type     = document.getElementById('pet-type').value.trim();
       var color    = document.getElementById('pet-color').value.trim();
       var size     = document.getElementById('pet-size').value;
       var location = document.getElementById('last-seen-location').value.trim();
@@ -1137,17 +1417,34 @@
         return;
       }
 
-      var newCard = { id: nextCardId++, ownerEmail: currentUser.email, name: name, type: type, color: color, size: size, location: location, date: date, time: time, radius: radius, lat: null, lng: null };
-      cards.unshift(newCard);
-      document.getElementById('pet-form').reset();
-      renderCards();
-      showTab('lost-pets');
+      if (!sbReady) {
+        alert('Supabase is not connected yet. Add your Project URL and anon key to the top of the script to save posts.');
+        return;
+      }
 
-      // Geocode location in background to add map pin
-      nominatim(location, function(lat, lng) {
-        newCard.lat = lat;
-        newCard.lng = lng;
-        updateMapMarkers();
+      var result = await sb.from('pets').insert({
+        owner_email: currentUser.email,
+        name: name, type: type, color: color, size: size,
+        location: location, date: date, time: time, radius: radius,
+        reunited: false, lat: null, lng: null
+      }).select().single();
+
+      if (result.error) {
+        console.error('submitPetForm:', result.error);
+        alert('Could not save your post. Make sure RLS is disabled on the pets table in Supabase.');
+        return;
+      }
+
+      var newCard = result.data;
+      document.getElementById('pet-form').reset();
+      showTab('lost-pets');
+      loadPets();
+
+      nominatim(location, async function(lat, lng) {
+        if (lat !== null) {
+          await sb.from('pets').update({ lat: lat, lng: lng }).eq('id', newCard.id);
+          loadPets();
+        }
       });
     }
 
@@ -1156,104 +1453,126 @@
     // ══════════════════════════════════════════
     function filterCards() {
       var query    = document.getElementById('search-input').value.toLowerCase().trim();
-      var locText  = document.getElementById('filter-location-text').value.toLowerCase().trim();
-      var type     = document.getElementById('filter-type').value.toLowerCase();
-      var date     = document.getElementById('filter-date').value;
+      var typeF    = document.getElementById('filter-type').value.toLowerCase().trim();
+      var dateFrom = document.getElementById('filter-date-from').value;
+      var dateTo   = document.getElementById('filter-date-to').value;
       var radius   = parseFloat(document.getElementById('radius-select').value) || 0;
-      var visible  = 0;
+      var visible    = 0;
+      var visibleIds = [];
 
       document.querySelectorAll('.pet-card').forEach(function(el) {
         var name  = el.dataset.name || '';
         var ctype = el.dataset.type || '';
         var cdate = el.dataset.date || '';
-        var cloc  = el.dataset.loc  || '';
         var cid   = parseInt(el.dataset.id, 10);
 
-        // Find card object for distance
         var cardObj = null;
         for (var i = 0; i < cards.length; i++) { if (cards[i].id === cid) { cardObj = cards[i]; break; } }
 
+        // Radius filter: only active when user has searched a location AND chosen a radius
         var distOk = true;
-        if (radius > 0 && userLat !== null && cardObj && cardObj.lat) {
-          distOk = haversine(userLat, userLng, cardObj.lat, cardObj.lng) <= radius;
+        if (radius > 0 && userLat !== null) {
+          if (cardObj && cardObj.lat && cardObj.lng) {
+            distOk = haversine(userLat, userLng, cardObj.lat, cardObj.lng) <= radius;
+          }
+          // Cards with no coordinates yet pass through so they're not silently hidden
         }
 
+        // Date range filter — card passes if its date falls between from and to (inclusive)
+        var dateOk = true;
+        if (dateFrom && cdate) dateOk = dateOk && cdate >= dateFrom;
+        if (dateTo   && cdate) dateOk = dateOk && cdate <= dateTo;
+
         var ok =
-          (!query   || name.includes(query) || ctype.includes(query)) &&
-          (!locText || cloc.includes(locText)) &&
-          (!type    || ctype === type) &&
-          (!date    || cdate === date) &&
+          (!query || name.includes(query)) &&
+          (!typeF || ctype.includes(typeF)) &&
+          dateOk &&
           distOk;
 
         el.style.display = ok ? '' : 'none';
-        if (ok) visible++;
+        if (ok) { visible++; visibleIds.push(cid); }
       });
 
       document.getElementById('no-results').style.display = visible === 0 ? 'block' : 'none';
+
+      // Keep map in sync — only show markers for cards that pass the filter
+      updateMapMarkers(visibleIds);
     }
 
     // ══════════════════════════════════════════
-    // Map
+    // Pet map
     // ══════════════════════════════════════════
     function initMap() {
       if (leafletMap) return;
-
-      leafletMap = L.map('map');
+      // Default view: Toronto
+      leafletMap = L.map('map').setView([43.6532, -79.3832], 11);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 18
       }).addTo(leafletMap);
-
       updateMapMarkers();
     }
 
-    function updateMapMarkers() {
+    function updateMapMarkers(visibleIds) {
       if (!leafletMap) return;
-
       petMarkers.forEach(function(m) { leafletMap.removeLayer(m); });
       petMarkers = [];
 
       cards.forEach(function(card) {
         if (!card.lat || !card.lng) return;
+        // When a filter is active, only show markers for cards that passed it
+        if (visibleIds && visibleIds.indexOf(card.id) === -1) return;
+
         var m = L.circleMarker([card.lat, card.lng], {
           radius: 9, color: '#0f2d52', fillColor: '#2563eb', fillOpacity: 0.85, weight: 2
         }).addTo(leafletMap)
-          .bindPopup('<b>' + esc(card.name) + '</b><br>' + cap(card.type) + '<br><small>' + esc(card.location) + '</small>');
+          .bindPopup(
+            '<b>' + esc(card.name) + '</b><br>' +
+            cap(card.type) + (card.color ? ' — ' + esc(card.color) : '') + '<br>' +
+            '<small>' + esc(card.location) + '</small>'
+          );
         petMarkers.push(m);
       });
 
-      // Fit map to show all markers (only if no user location set)
+      // Fit map to show all visible markers (only when no user location is set)
       if (petMarkers.length > 0 && userLat === null) {
         var group = L.featureGroup(petMarkers);
         leafletMap.fitBounds(group.getBounds().pad(0.35));
       }
     }
 
+    function onRadiusChange() {
+      drawRadiusCircle();
+      filterCards();
+      // If location is typed but not yet geocoded, geocode it now
+      var loc = document.getElementById('user-location-input').value.trim();
+      if (loc && userLat === null) searchUserLocation();
+    }
+
     function searchUserLocation() {
       var loc = document.getElementById('user-location-input').value.trim();
-      if (!loc) { clearUserLocation(); return; }
+      if (!loc) { clearLocationSearch(); return; }
 
-      var btn = document.getElementById('location-search-btn');
-      btn.textContent = 'Searching…';
-      btn.disabled = true;
+      var statusEl = document.getElementById('location-status');
+      statusEl.textContent = 'Finding location…';
 
       nominatim(loc, function(lat, lng) {
-        btn.textContent = 'Search Area';
-        btn.disabled = false;
-
         if (lat === null) {
-          alert('Location "' + loc + '" not found. Please try a more specific address or city name.');
+          statusEl.textContent = 'Location not found — try a more specific address (e.g. "High Park, Toronto, ON").';
           return;
         }
 
-        userLat = lat;
-        userLng = lng;
+        statusEl.textContent = '';
+        userLat = lat; userLng = lng;
+
+        document.getElementById('clear-loc-btn').style.display = '';
 
         if (userMarker)   { leafletMap.removeLayer(userMarker);   userMarker   = null; }
         if (radiusCircle) { leafletMap.removeLayer(radiusCircle); radiusCircle = null; }
 
-        userMarker = L.marker([userLat, userLng])
-          .addTo(leafletMap)
+        userMarker = L.circleMarker([userLat, userLng], {
+          radius: 8, color: '#991b1b', fillColor: '#e11d48', fillOpacity: 0.9, weight: 2
+        }).addTo(leafletMap)
           .bindPopup('<b>Your location</b><br>' + esc(loc))
           .openPopup();
 
@@ -1262,25 +1581,36 @@
       });
     }
 
+    function clearLocationSearch() {
+      document.getElementById('user-location-input').value = '';
+      document.getElementById('location-status').textContent = '';
+      document.getElementById('clear-loc-btn').style.display = 'none';
+      clearUserLocation();
+    }
+
     function useMyGPS() {
       if (!navigator.geolocation) { alert('Your browser does not support location access.'); return; }
+      document.getElementById('location-status').textContent = 'Getting your location…';
       navigator.geolocation.getCurrentPosition(function(pos) {
         userLat = pos.coords.latitude;
         userLng = pos.coords.longitude;
         document.getElementById('user-location-input').value = 'My Location';
+        document.getElementById('location-status').textContent = '';
+        document.getElementById('clear-loc-btn').style.display = '';
 
         if (userMarker)   { leafletMap.removeLayer(userMarker);   userMarker   = null; }
         if (radiusCircle) { leafletMap.removeLayer(radiusCircle); radiusCircle = null; }
 
-        userMarker = L.marker([userLat, userLng])
-          .addTo(leafletMap)
+        userMarker = L.circleMarker([userLat, userLng], {
+          radius: 8, color: '#991b1b', fillColor: '#e11d48', fillOpacity: 0.9, weight: 2
+        }).addTo(leafletMap)
           .bindPopup('<b>Your location</b>')
           .openPopup();
 
         drawRadiusCircle();
         renderCards();
       }, function() {
-        alert('Could not get your location. Please type it instead.');
+        document.getElementById('location-status').textContent = 'Could not get your location. Please type it instead.';
       });
     }
 
@@ -1305,6 +1635,167 @@
     }
 
     // ══════════════════════════════════════════
+    // Vet & shelter search (Overpass API)
+    // ══════════════════════════════════════════
+    async function searchVetsAndShelters() {
+      var loc    = document.getElementById('vet-location-input').value.trim();
+      var radius = parseInt(document.getElementById('vet-radius-select').value, 10) || 5;
+
+      if (!loc) { alert('Please enter a city or address first.'); return; }
+
+      var btn = document.getElementById('vet-search-btn');
+      btn.textContent = 'Searching…';
+      btn.disabled    = true;
+      document.getElementById('vet-results').innerHTML = '<p class="vet-loading">Looking up location…</p>';
+
+      nominatim(loc, async function(lat, lng) {
+        if (lat === null) {
+          btn.textContent = 'Search';
+          btn.disabled    = false;
+          document.getElementById('vet-results').innerHTML = '<p class="vet-no-results">Location not found. Try a city name like "Toronto, ON" or "Richmond Hill, Ontario".</p>';
+          return;
+        }
+
+        document.getElementById('vet-results').innerHTML = '<p class="vet-loading">Finding nearby vets and shelters…</p>';
+
+        var radiusM = radius * 1000;
+        var query =
+          '[out:json][timeout:20];(' +
+          'node["amenity"="veterinary"](around:' + radiusM + ',' + lat + ',' + lng + ');' +
+          'way["amenity"="veterinary"](around:'  + radiusM + ',' + lat + ',' + lng + ');' +
+          'node["amenity"="animal_shelter"](around:' + radiusM + ',' + lat + ',' + lng + ');' +
+          'way["amenity"="animal_shelter"](around:'  + radiusM + ',' + lat + ',' + lng + ');' +
+          ');out center;';
+
+        try {
+          var resp = await fetch('https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(query));
+          var data = await resp.json();
+
+          var results = (data.elements || []).map(function(el) {
+            var elLat = el.lat || (el.center && el.center.lat);
+            var elLng = el.lon || (el.center && el.center.lon);
+            return {
+              type:    el.tags && el.tags.amenity,
+              name:    (el.tags && el.tags.name) || (el.tags && el.tags.amenity === 'veterinary' ? 'Veterinary Clinic' : 'Animal Shelter'),
+              address: buildAddress(el.tags),
+              phone:   (el.tags && (el.tags.phone || el.tags['contact:phone'])) || '',
+              website: (el.tags && el.tags.website) || '',
+              lat:     elLat,
+              lng:     elLng
+            };
+          }).filter(function(r) { return r.lat && r.lng; });
+
+          // Sort by distance
+          results.sort(function(a, b) {
+            return haversine(lat, lng, a.lat, a.lng) - haversine(lat, lng, b.lat, b.lng);
+          });
+
+          btn.textContent = 'Search';
+          btn.disabled    = false;
+
+          renderVetResults(results, lat, lng);
+          updateHelpMap(results, lat, lng, radius);
+
+        } catch (e) {
+          btn.textContent = 'Search';
+          btn.disabled    = false;
+          document.getElementById('vet-results').innerHTML = '<p class="vet-no-results">Search failed. Check your internet connection and try again.</p>';
+          console.error('Overpass error:', e);
+        }
+      });
+    }
+
+    function buildAddress(tags) {
+      if (!tags) return '';
+      var parts = [];
+      if (tags['addr:housenumber']) parts.push(tags['addr:housenumber']);
+      if (tags['addr:street'])      parts.push(tags['addr:street']);
+      if (tags['addr:city'])        parts.push(tags['addr:city']);
+      return parts.join(' ') || tags['addr:full'] || '';
+    }
+
+    function renderVetResults(results, userLat, userLng) {
+      var el = document.getElementById('vet-results');
+      if (results.length === 0) {
+        el.innerHTML = '<p class="vet-no-results">No vets or shelters found within this radius. Try increasing the distance or searching a nearby city.</p>';
+        return;
+      }
+
+      var html = '<div class="vet-results-list">';
+      results.forEach(function(r) {
+        var isVet = r.type === 'veterinary';
+        var dist  = haversine(userLat, userLng, r.lat, r.lng).toFixed(1);
+        html +=
+          '<div class="vet-card' + (isVet ? '' : ' shelter') + '">' +
+          '<span class="vet-type-badge ' + (isVet ? 'vet' : 'shelter') + '">' +
+            (isVet ? 'Veterinary Clinic' : 'Animal Shelter') +
+          '</span>' +
+          '<h4>' + esc(r.name) + '</h4>' +
+          (r.address ? '<p class="vet-card-meta">' + esc(r.address) + '</p>' : '') +
+          (r.phone   ? '<p class="vet-card-meta">' + esc(r.phone)   + '</p>' : '') +
+          '<p class="vet-card-dist">' + dist + ' km away</p>' +
+          '</div>';
+      });
+      html += '</div>';
+      el.innerHTML = html;
+    }
+
+    // ── Help map ──
+    function initHelpMap(lat, lng, zoom) {
+      zoom = zoom || 13;
+      if (!helpMap) {
+        helpMap = L.map('help-map').setView([lat, lng], zoom);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          maxZoom: 18
+        }).addTo(helpMap);
+      } else {
+        helpMap.setView([lat, lng], zoom);
+      }
+    }
+
+    function updateHelpMap(results, lat, lng, radius) {
+      initHelpMap(lat, lng);
+
+      helpMarkers.forEach(function(m) { helpMap.removeLayer(m); });
+      helpMarkers = [];
+      if (helpUserMarker)   { helpMap.removeLayer(helpUserMarker);   helpUserMarker   = null; }
+      if (helpRadiusCircle) { helpMap.removeLayer(helpRadiusCircle); helpRadiusCircle = null; }
+
+      // User location marker (red)
+      helpUserMarker = L.circleMarker([lat, lng], {
+        radius: 8, color: '#991b1b', fillColor: '#e11d48', fillOpacity: 0.9, weight: 2
+      }).addTo(helpMap).bindPopup('<b>Your search location</b>').openPopup();
+
+      // Radius circle
+      helpRadiusCircle = L.circle([lat, lng], {
+        radius: radius * 1000, color: '#64748b', fillColor: '#64748b', fillOpacity: 0.05, weight: 1.5, dashArray: '4 4'
+      }).addTo(helpMap);
+
+      // Result markers
+      results.forEach(function(r) {
+        var isVet = r.type === 'veterinary';
+        var color = isVet ? '#2563eb' : '#16a34a';
+        var m = L.circleMarker([r.lat, r.lng], {
+          radius: 9, color: isVet ? '#1e3a8a' : '#14532d', fillColor: color, fillOpacity: 0.9, weight: 2
+        }).addTo(helpMap)
+          .bindPopup(
+            '<b>' + esc(r.name) + '</b><br>' +
+            '<span style="color:' + color + ';font-size:0.82em;font-weight:600;">' +
+            (isVet ? 'Veterinary Clinic' : 'Animal Shelter') + '</span>' +
+            (r.address ? '<br><small>' + esc(r.address) + '</small>' : '') +
+            (r.phone   ? '<br><small>' + esc(r.phone)   + '</small>' : '')
+          );
+        helpMarkers.push(m);
+      });
+
+      // Fit bounds to show everything
+      var allLayers = [helpUserMarker].concat(helpMarkers);
+      var group = L.featureGroup(allLayers);
+      helpMap.fitBounds(group.getBounds().pad(0.15));
+    }
+
+    // ══════════════════════════════════════════
     // Chats
     // ══════════════════════════════════════════
     function contactOwner(cardId) {
@@ -1312,18 +1803,39 @@
       var card = null;
       for (var i = 0; i < cards.length; i++) { if (cards[i].id === cardId) { card = cards[i]; break; } }
       if (!card) return;
-
-      if (card.ownerEmail === currentUser.email) {
+      if (card.owner_email === currentUser.email) {
         alert('This is your own post. Other users can message you by clicking "Contact Owner".');
         return;
       }
+      activeConvId = cardId;
+      if (convPetIds.indexOf(cardId) === -1) convPetIds.push(cardId);
+      showTab('chats');
+    }
 
-      if (!conversations[cardId]) {
-        conversations[cardId] = { cardName: card.name, messages: [] };
+    async function loadConvPetIds() {
+      if (!currentUser) { convPetIds = []; renderChatsTab(); return; }
+      if (!sbReady)     { convPetIds = activeConvId !== null ? [activeConvId] : []; renderChatsTab(); return; }
+
+      var sentResult = await sb.from('messages').select('pet_id').eq('sender_email', currentUser.email);
+      var sentIds    = (sentResult.data || []).map(function(m) { return m.pet_id; });
+
+      var myPetIds = cards.filter(function(c) { return c.owner_email === currentUser.email; }).map(function(c) { return c.id; });
+      var recvIds  = [];
+      if (myPetIds.length > 0) {
+        var recvResult = await sb.from('messages').select('pet_id').in('pet_id', myPetIds);
+        recvIds = (recvResult.data || []).map(function(m) { return m.pet_id; });
       }
 
-      activeConvId = cardId;
-      showTab('chats');
+      var seen = {};
+      var merged = sentIds.concat(recvIds).filter(function(id) {
+        if (seen[id]) return false;
+        seen[id] = true;
+        return true;
+      });
+
+      if (activeConvId !== null && merged.indexOf(activeConvId) === -1) merged.push(activeConvId);
+      convPetIds = merged;
+      renderChatsTab();
     }
 
     function renderChatsTab() {
@@ -1334,70 +1846,103 @@
 
       var listEl = document.getElementById('chat-list');
       listEl.innerHTML = '';
-      var ids = Object.keys(conversations);
 
-      if (ids.length === 0) {
+      if (convPetIds.length === 0) {
         listEl.innerHTML = '<p class="chat-list-empty">No conversations yet.<br>Click "Contact Owner" on a pet card to start one.</p>';
       } else {
-        ids.forEach(function(id) {
-          var conv = conversations[id];
+        convPetIds.forEach(function(pid) {
+          var card = null;
+          for (var i = 0; i < cards.length; i++) { if (cards[i].id === pid) { card = cards[i]; break; } }
           var item = document.createElement('div');
-          item.className = 'chat-list-item' + (String(activeConvId) === id ? ' active' : '');
-          item.onclick   = (function(cid) { return function() { activeConvId = parseInt(cid, 10); renderChatsTab(); }; })(id);
-          var last = conv.messages.length > 0 ? conv.messages[conv.messages.length - 1].text : 'No messages yet';
-          if (last.length > 34) last = last.slice(0, 34) + '…';
-          item.innerHTML = '<h4>' + esc(conv.cardName) + '</h4><p>' + esc(last) + '</p>';
+          item.className = 'chat-list-item' + (activeConvId === pid ? ' active' : '');
+          item.onclick = (function(id) {
+            return function() { activeConvId = id; renderChatsTab(); loadMessages(id); };
+          })(pid);
+          item.innerHTML = '<h4>' + esc(card ? card.name : 'Unknown Pet') + '</h4><p>View messages</p>';
           listEl.appendChild(item);
         });
       }
 
       var emptyState = document.getElementById('chat-empty-state');
       var activeArea = document.getElementById('chat-active-area');
-      var conv       = activeConvId ? conversations[activeConvId] : null;
 
-      if (conv) {
+      if (activeConvId !== null && convPetIds.indexOf(activeConvId) !== -1) {
         emptyState.style.display = 'none';
         activeArea.style.display = 'flex';
-        document.getElementById('chat-window-title').textContent = 'Chat about: ' + conv.cardName;
-        renderMessages();
+        var activeCard = null;
+        for (var i = 0; i < cards.length; i++) { if (cards[i].id === activeConvId) { activeCard = cards[i]; break; } }
+        document.getElementById('chat-window-title').textContent = 'Chat about: ' + (activeCard ? activeCard.name : 'Unknown');
+        loadMessages(activeConvId);
       } else {
         emptyState.style.display = 'flex';
         activeArea.style.display = 'none';
       }
     }
 
-    function renderMessages() {
-      var conv = conversations[activeConvId];
-      if (!conv) return;
+    async function loadMessages(petId) {
+      if (!sbReady) { renderMessages([]); return; }
+      var result = await sb.from('messages').select('*').eq('pet_id', petId).order('id', { ascending: true });
+      if (result.error) { console.error('loadMessages:', result.error); return; }
+      renderMessages(result.data || []);
+    }
+
+    function renderMessages(msgs) {
       var box = document.getElementById('chat-messages');
       box.innerHTML = '';
-      conv.messages.forEach(function(msg) {
-        var mine = currentUser && msg.senderName === currentUser.name;
+      msgs.forEach(function(msg) {
+        var mine = currentUser && msg.sender_email === currentUser.email;
         var div  = document.createElement('div');
         div.className = 'message-bubble' + (mine ? ' mine' : '');
         div.innerHTML =
-          '<div class="message-sender">' + esc(msg.senderName) + ' · ' + esc(msg.time) + '</div>' +
-          '<div class="message-text">'   + esc(msg.text)       + '</div>';
+          '<div class="message-sender">' + esc(msg.sender_name) + ' · ' + esc(msg.time || '') + '</div>' +
+          '<div class="message-text">'   + esc(msg.text)        + '</div>';
         box.appendChild(div);
       });
       box.scrollTop = box.scrollHeight;
     }
 
-    function sendMessage() {
-      if (!currentUser || !activeConvId) return;
+    async function sendMessage() {
+      if (!currentUser || activeConvId === null) return;
       var input = document.getElementById('chat-input');
       var text  = input.value.trim();
       if (!text) return;
-      var conv  = conversations[activeConvId];
-      if (!conv) return;
-      var now   = new Date();
-      var h     = now.getHours() % 12 || 12;
-      var min   = String(now.getMinutes()).padStart(2, '0');
-      var ampm  = now.getHours() >= 12 ? 'PM' : 'AM';
-      conv.messages.push({ senderName: currentUser.name, text: text, time: h + ':' + min + ' ' + ampm });
+
+      if (!sbReady) { alert('Supabase is not connected. Messages cannot be saved yet.'); return; }
+
+      var now  = new Date();
+      var h    = now.getHours() % 12 || 12;
+      var min  = String(now.getMinutes()).padStart(2, '0');
+      var ampm = now.getHours() >= 12 ? 'PM' : 'AM';
+
+      var result = await sb.from('messages').insert({
+        pet_id:       activeConvId,
+        sender_email: currentUser.email,
+        sender_name:  currentUser.name,
+        text:         text,
+        time:         h + ':' + min + ' ' + ampm
+      });
+
+      if (result.error) { console.error('sendMessage:', result.error); alert('Could not send message.'); return; }
       input.value = '';
-      renderMessages();
-      renderChatsTab();
+      loadMessages(activeConvId);
+      loadConvPetIds();
+    }
+
+    // ══════════════════════════════════════════
+    // Real-time (only when Supabase is ready)
+    // ══════════════════════════════════════════
+    function setupRealtime() {
+      if (!sbReady) return;
+      sb.channel('realtime-pets')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'pets' }, function() { loadPets(); })
+        .subscribe();
+      sb.channel('realtime-messages')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, function(payload) {
+          var incomingPetId = payload.new && payload.new.pet_id;
+          if (incomingPetId === activeConvId) loadMessages(activeConvId);
+          if (currentUser) loadConvPetIds();
+        })
+        .subscribe();
     }
 
     // ══════════════════════════════════════════
@@ -1434,7 +1979,7 @@
 
     function nominatim(query, cb) {
       fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(query), {
-        headers: { 'Accept-Language': 'en' }
+        headers: { 'Accept-Language': 'en', 'User-Agent': 'PetAlert-School-Project' }
       })
       .then(function(r) { return r.json(); })
       .then(function(data) {
@@ -1447,21 +1992,18 @@
     // ══════════════════════════════════════════
     // Event listeners & init
     // ══════════════════════════════════════════
-    document.getElementById('search-input').addEventListener('input', filterCards);
-    document.getElementById('filter-location-text').addEventListener('input', filterCards);
-    document.getElementById('radius-select').addEventListener('change', function() {
-      drawRadiusCircle();
-      filterCards();
-    });
     document.getElementById('user-location-input').addEventListener('keydown', function(e) {
       if (e.key === 'Enter') searchUserLocation();
+    });
+    document.getElementById('vet-location-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') searchVetsAndShelters();
     });
     document.getElementById('chat-input').addEventListener('keydown', function(e) {
       if (e.key === 'Enter') sendMessage();
     });
 
-    // Init
     updateAuthUI();
+    setupRealtime();
     setTimeout(initMap, 80);
 
   </script>
