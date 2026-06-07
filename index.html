@@ -755,6 +755,94 @@
     .chat-input-area input { flex: 1; padding: 0.45rem 0.7rem; font-size: 0.85rem; border: 1px solid #cbd5e1; border-radius: 4px; font-family: inherit; }
     .chat-input-area input:focus { outline: 2px solid #2563eb; outline-offset: 1px; }
 
+    /* ── Notifications ── */
+    .bell-wrapper {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .bell-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: rgba(255,255,255,0.72);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      padding: 0;
+    }
+
+    .bell-btn:hover { background: rgba(255,255,255,0.12); color: white; }
+
+    .bell-badge {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      background: #e11d48;
+      color: white;
+      font-size: 0.55rem;
+      font-weight: 700;
+      min-width: 15px;
+      height: 15px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 3px;
+      border: 1.5px solid #0f2d52;
+    }
+
+    .notif-dropdown {
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      width: 300px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+      z-index: 500;
+      overflow: hidden;
+    }
+
+    .notif-dropdown.hidden { display: none; }
+
+    .notif-header {
+      padding: 0.65rem 1rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #0f2d52;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .notif-clear {
+      font-size: 0.72rem;
+      color: #2563eb;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      padding: 0;
+    }
+
+    .notif-item {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #f1f5f9;
+      cursor: pointer;
+    }
+
+    .notif-item:hover { background: #f8fafc; }
+    .notif-item:last-child { border-bottom: none; }
+    .notif-item-title { font-size: 0.8rem; font-weight: 600; color: #0f2d52; margin-bottom: 0.15rem; }
+    .notif-item-text  { font-size: 0.76rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .notif-empty      { padding: 1.5rem 1rem; text-align: center; font-size: 0.82rem; color: #94a3b8; }
+
     /* ── Footer ── */
     footer { background: #0a1f38; color: #64748b; text-align: center; padding: 1.25rem; font-size: 0.8rem; }
 
@@ -789,6 +877,24 @@
         <button class="tab-btn"        data-tab="tips"        onclick="showTab('tips')">Tips</button>
         <button class="tab-btn"        data-tab="chats"       onclick="showTab('chats')">Chats</button>
         <button class="tab-btn"  data-tab="profile"     onclick="showTab('profile')" id="profile-tab-btn" style="display:none;">Profile</button>
+      </div>
+
+      <!-- Bell -->
+      <div class="bell-wrapper" id="bell-wrapper" style="display:none;">
+        <button class="bell-btn" onclick="toggleNotifications()" title="Notifications">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          <span class="bell-badge" id="bell-badge" style="display:none;"></span>
+        </button>
+        <div class="notif-dropdown hidden" id="notif-dropdown">
+          <div class="notif-header">
+            Notifications
+            <button class="notif-clear" onclick="clearNotifications()">Clear all</button>
+          </div>
+          <div id="notif-list"></div>
+        </div>
       </div>
 
       <div class="navbar-auth">
@@ -1365,6 +1471,82 @@
       updateAuthUI();
     }
 
+    // ══════════════════════════════════════════
+    // Notifications
+    // ══════════════════════════════════════════
+    var notifications = [];
+
+    function addNotification(n) {
+      notifications.unshift(n);
+      if (notifications.length > 20) notifications.pop();
+      updateBell();
+    }
+
+    function updateBell() {
+      var badge = document.getElementById('bell-badge');
+      var count = notifications.length;
+      badge.textContent = count > 9 ? '9+' : String(count);
+      badge.style.display = count > 0 ? 'flex' : 'none';
+    }
+
+    function toggleNotifications() {
+      var dd = document.getElementById('notif-dropdown');
+      var opening = dd.classList.contains('hidden');
+      dd.classList.toggle('hidden');
+      if (opening) {
+        renderNotifications();
+        setTimeout(function() {
+          document.addEventListener('click', closeNotifOutside);
+        }, 0);
+      }
+    }
+
+    function closeNotifOutside(e) {
+      var wrapper = document.getElementById('bell-wrapper');
+      if (!wrapper.contains(e.target)) {
+        document.getElementById('notif-dropdown').classList.add('hidden');
+        document.removeEventListener('click', closeNotifOutside);
+      }
+    }
+
+    function clearNotifications() {
+      notifications = [];
+      updateBell();
+      document.getElementById('notif-dropdown').classList.add('hidden');
+      document.removeEventListener('click', closeNotifOutside);
+    }
+
+    function renderNotifications() {
+      var list = document.getElementById('notif-list');
+      if (notifications.length === 0) {
+        list.innerHTML = '<p class="notif-empty">No new notifications</p>';
+        return;
+      }
+      list.innerHTML = '';
+      notifications.forEach(function(n, i) {
+        var div = document.createElement('div');
+        div.className = 'notif-item';
+        div.innerHTML =
+          '<div class="notif-item-title">New message about ' + esc(n.petName) + '</div>' +
+          '<div class="notif-item-text"><b>' + esc(n.senderName) + ':</b> ' + esc(n.text) + '</div>';
+        div.onclick = (function(idx) {
+          return function() { openNotif(idx); };
+        })(i);
+        list.appendChild(div);
+      });
+    }
+
+    function openNotif(index) {
+      var n = notifications[index];
+      if (!n) return;
+      notifications.splice(index, 1);
+      updateBell();
+      document.getElementById('notif-dropdown').classList.add('hidden');
+      document.removeEventListener('click', closeNotifOutside);
+      activeConv = { petId: n.petId, threadEmail: n.threadEmail, senderName: n.senderName };
+      showTab('chats');
+    }
+
     function saveSession() {
       localStorage.setItem('petalert_session', JSON.stringify(currentUser));
     }
@@ -1387,6 +1569,7 @@
       document.getElementById('auth-logged-out').style.display  = on ? 'none' : '';
       document.getElementById('auth-logged-in').style.display   = on ? 'flex' : 'none';
       document.getElementById('profile-tab-btn').style.display  = on ? '' : 'none';
+      document.getElementById('bell-wrapper').style.display     = on ? '' : 'none';
       document.getElementById('form-login-note').style.display  = on ? 'none' : 'block';
       if (on) {
         var initials = currentUser.name.trim().split(/\s+/).map(function(w) { return w[0]; }).slice(0, 2).join('').toUpperCase();
@@ -2038,9 +2221,30 @@
         .subscribe();
       sb.channel('realtime-messages')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, function(payload) {
-          if (!activeConv || !payload.new) return;
-          if (payload.new.pet_id === activeConv.petId && payload.new.thread_email === activeConv.threadEmail) {
+          var msg = payload.new;
+          if (!msg || !currentUser) return;
+
+          // Refresh the open chat if this message belongs to it
+          if (activeConv && msg.pet_id === activeConv.petId && msg.thread_email === activeConv.threadEmail) {
             loadMessages(activeConv);
+          }
+
+          // Notify if I'm a participant but didn't send it and it's not currently open
+          var isMyMessage  = msg.sender_email === currentUser.email;
+          var isMyThread   = msg.thread_email === currentUser.email;
+          var myPet        = cards.find(function(c) { return c.id === msg.pet_id && c.owner_email === currentUser.email; });
+          var isParticipant = isMyThread || !!myPet;
+          var isCurrentView = activeConv && msg.pet_id === activeConv.petId && msg.thread_email === activeConv.threadEmail;
+
+          if (isParticipant && !isMyMessage && !isCurrentView) {
+            var petCard = cards.find(function(c) { return c.id === msg.pet_id; });
+            addNotification({
+              petId:      msg.pet_id,
+              threadEmail: msg.thread_email,
+              senderName: msg.sender_name,
+              text:       msg.text,
+              petName:    petCard ? petCard.name : 'Unknown Pet'
+            });
           }
         })
         .subscribe();
