@@ -1986,7 +1986,7 @@
         time:         h + ':' + min + ' ' + ampm
       });
 
-      if (result.error) { console.error('sendMessage:', result.error); alert('Could not send message.'); return; }
+      if (result.error) { console.error('sendMessage:', result.error); alert('Message failed: ' + (result.error.message || JSON.stringify(result.error))); return; }
       input.value = '';
       loadMessages(activeConv);
     }
