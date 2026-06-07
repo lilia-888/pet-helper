@@ -180,29 +180,61 @@
     .btn-nav-solid:hover  { background: #1d4ed8; }
     .btn-sm               { padding: 0.4rem 0.85rem; font-size: 0.8rem; }
 
-    /* ── Action strip ── */
-    .action-strip {
-      background: #1a3e6e;
+    /* ── Hero ── */
+    .hero {
+      position: relative;
+      background:
+        linear-gradient(rgba(10,31,56,0.62), rgba(10,31,56,0.78)),
+        url('https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&w=1920&q=80')
+        center/cover no-repeat;
+      color: white;
+      text-align: center;
+      padding: 4rem 1.5rem 3.5rem;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      padding: 0.6rem 1.25rem;
-      gap: 0.75rem;
-      flex-wrap: wrap;
+      justify-content: center;
+      min-height: 300px;
     }
 
-    .action-strip p {
-      font-size: 0.825rem;
-      color: rgba(255,255,255,0.7);
-      flex: 1;
-      min-width: 160px;
+    .hero-content { max-width: 620px; }
+
+    .hero-badge {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #93c5fd;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 0.2rem 0.65rem;
+      border-radius: 20px;
+      margin-bottom: 1rem;
     }
 
-    .action-strip-buttons {
+    .hero h1 {
+      font-size: 2.6rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      line-height: 1.15;
+      margin-bottom: 0.85rem;
+    }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: rgba(255,255,255,0.82);
+      line-height: 1.65;
+      margin-bottom: 1.9rem;
+    }
+
+    .hero-buttons {
       display: flex;
-      gap: 0.5rem;
+      gap: 0.75rem;
+      justify-content: center;
       flex-wrap: wrap;
     }
+
+    .hero-buttons .btn { padding: 0.7rem 1.6rem; font-size: 0.95rem; }
 
     /* ── Modal ── */
     .modal-overlay {
@@ -728,7 +760,8 @@
 
     /* ── Mobile ── */
     @media (max-width: 680px) {
-      .action-strip p   { display: none; }
+      .hero h1          { font-size: 1.8rem; }
+      .hero p           { font-size: 0.9rem; }
       .form-row         { grid-template-columns: 1fr; }
       .three-columns    { grid-template-columns: 1fr; }
       .two-columns      { grid-template-columns: 1fr; }
@@ -774,12 +807,16 @@
     </div>
   </nav>
 
-  <div class="action-strip">
-    <p>A free local tool for lost pet alerts — post, search, and connect with neighbors.</p>
-    <div class="action-strip-buttons">
-      <button class="btn btn-white btn-sm" onclick="showTab('lost-pets')">Find Your Pet</button>
-      <button class="btn btn-amber btn-sm" onclick="showTab('post-pet')">Report a Lost Pet</button>
-      <button class="btn btn-nav  btn-sm" onclick="showTab('find-help')">Find Vets &amp; Shelters</button>
+  <div class="hero">
+    <div class="hero-content">
+      <span class="hero-badge">Free &nbsp;·&nbsp; Local &nbsp;·&nbsp; No sign-up to browse</span>
+      <h1>Help bring pets home</h1>
+      <p>Post a missing pet alert, search nearby listings,<br>and connect with neighbors — all in one place.</p>
+      <div class="hero-buttons">
+        <button class="btn btn-amber" onclick="showTab('post-pet')">Report a Lost Pet</button>
+        <button class="btn btn-white" onclick="showTab('lost-pets')">Find Your Pet</button>
+        <button class="btn btn-nav"   onclick="showTab('find-help')">Find Vets &amp; Shelters</button>
+      </div>
     </div>
   </div>
 
