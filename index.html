@@ -1157,8 +1157,8 @@
     // Replace these two lines with your real credentials from
     // Supabase → Project Settings → API
     // ══════════════════════════════════════════
-    var SUPABASE_URL = 'YOUR_SUPABASE_URL';
-    var SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    var SUPABASE_URL = 'https://zidvnhrlfruyxivpavtr.supabase.co';
+    var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InppZHZuaHJsZnJ1eXhpdnBhdnRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MzQ5NjksImV4cCI6MjA5NjQxMDk2OX0.zXXcgoXgLtJFx00o2pYLOSAqPiUXZvtCxtiBfBd9zgU';
 
     var sb       = null;
     var sbReady  = false;
@@ -1206,8 +1206,8 @@
     var currentUser = null;
     var users       = JSON.parse(localStorage.getItem('petalert_users') || 'null') || [];
     var cards       = [];
-    var activeConvId = null;
-    var convPetIds   = [];
+    var activeConv    = null; // { petId, threadEmail }
+    var conversations = [];  // [{ petId, threadEmail, senderName }]
 
     // Pet map state
     var leafletMap   = null;
@@ -1249,7 +1249,7 @@
           if (helpMap) helpMap.invalidateSize();
         }, 60);
       }
-      if (id === 'chats')   renderChatsTab();
+      if (id === 'chats')   loadConversations();
       if (id === 'profile') renderProfileTab();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -1284,30 +1284,17 @@
       document.getElementById('signup-error').textContent = '';
     }
 
-    async function submitLogin() {
+    function submitLogin() {
       var email    = document.getElementById('login-email').value.trim().toLowerCase();
       var password = document.getElementById('login-password').value;
       var errEl    = document.getElementById('login-error');
       var btn      = document.querySelector('#modal-login .btn-primary');
       errEl.textContent = '';
-      btn.textContent   = 'Logging in…';
-      btn.disabled      = true;
 
       var found = null;
-
-      if (sbReady) {
-        var result = await sb.from('accounts').select('*').eq('email', email).eq('password', password);
-        if (result.data && result.data.length > 0) found = result.data[0];
+      for (var i = 0; i < users.length; i++) {
+        if (users[i].email.toLowerCase() === email && users[i].password === password) { found = users[i]; break; }
       }
-
-      if (!found) {
-        for (var i = 0; i < users.length; i++) {
-          if (users[i].email.toLowerCase() === email && users[i].password === password) { found = users[i]; break; }
-        }
-      }
-
-      btn.textContent = 'Log In';
-      btn.disabled    = false;
 
       if (!found) { errEl.textContent = 'Email or password is incorrect.'; return; }
       currentUser = found;
@@ -1316,54 +1303,27 @@
       updateAuthUI();
     }
 
-    async function submitSignup() {
+    function submitSignup() {
       var name     = document.getElementById('signup-name').value.trim();
       var email    = document.getElementById('signup-email').value.trim().toLowerCase();
       var password = document.getElementById('signup-password').value;
       var errEl    = document.getElementById('signup-error');
-      var btn      = document.querySelector('#modal-signup .btn-primary');
 
       errEl.textContent = '';
       if (!name || !email || !password) { errEl.textContent = 'Please fill in all fields.'; return; }
 
-      btn.textContent = 'Creating account…';
-      btn.disabled    = true;
-
-      if (sbReady) {
-        var check = await sb.from('accounts').select('id').eq('email', email);
-        if (check.data && check.data.length > 0) {
+      for (var i = 0; i < users.length; i++) {
+        if (users[i].email.toLowerCase() === email) {
           errEl.textContent = 'An account with that email already exists.';
-          btn.textContent   = 'Sign Up';
-          btn.disabled      = false;
           return;
         }
-        var insert = await sb.from('accounts').insert({ name: name, email: email, password: password }).select().single();
-        if (insert.error) {
-          errEl.textContent = 'Sign up failed — make sure the accounts table exists and RLS is off.';
-          btn.textContent   = 'Sign Up';
-          btn.disabled      = false;
-          console.error('signup:', insert.error);
-          return;
-        }
-        currentUser = insert.data;
-      } else {
-        for (var i = 0; i < users.length; i++) {
-          if (users[i].email.toLowerCase() === email) {
-            errEl.textContent = 'An account with that email already exists.';
-            btn.textContent   = 'Sign Up';
-            btn.disabled      = false;
-            return;
-          }
-        }
-        currentUser = { name: name, email: email, password: password };
       }
 
+      currentUser = { name: name, email: email, password: password };
       users.push(currentUser);
       saveUsers();
       saveSession();
 
-      btn.textContent = 'Sign Up';
-      btn.disabled    = false;
       closeModal();
       updateAuthUI();
     }
@@ -1377,9 +1337,9 @@
     }
 
     function logOut() {
-      currentUser  = null;
-      activeConvId = null;
-      convPetIds   = [];
+      currentUser   = null;
+      activeConv    = null;
+      conversations = [];
       clearSession();
       updateAuthUI();
       showTab('lost-pets');
@@ -1492,8 +1452,8 @@
         await sb.from('messages').delete().eq('pet_id', cardId);
         await sb.from('pets').delete().eq('id', cardId);
       }
-      if (activeConvId === cardId) activeConvId = null;
-      convPetIds = convPetIds.filter(function(id) { return id !== cardId; });
+      if (activeConv && activeConv.petId === cardId) activeConv = null;
+      conversations = conversations.filter(function(c) { return c.petId !== cardId; });
       loadPets();
     }
 
@@ -1529,7 +1489,7 @@
 
       if (result.error) {
         console.error('submitPetForm:', result.error);
-        alert('Could not save your post. Make sure RLS is disabled on the pets table in Supabase.');
+        alert('Post failed: ' + (result.error.message || JSON.stringify(result.error)));
         return;
       }
 
@@ -1897,13 +1857,48 @@
     // Chats
     // ══════════════════════════════════════════
     function contactOwner(cardId) {
-      activeConvId = cardId;
-      if (convPetIds.indexOf(cardId) === -1) convPetIds.push(cardId);
+      if (!currentUser) { openModal('login'); return; }
+      var conv = { petId: cardId, threadEmail: currentUser.email, senderName: currentUser.name };
+      activeConv = conv;
+      if (!conversations.find(function(c) { return c.petId === cardId && c.threadEmail === currentUser.email; })) {
+        conversations.push(conv);
+      }
       showTab('chats');
     }
 
-    function loadConvPetIds() {
-      if (activeConvId !== null && convPetIds.indexOf(activeConvId) === -1) convPetIds.push(activeConvId);
+    async function loadConversations() {
+      if (!currentUser) { renderChatsTab(); return; }
+      if (!sbReady)     { renderChatsTab(); return; }
+
+      var myEmail = currentUser.email;
+      var myPetIds = cards.filter(function(c) { return c.owner_email === myEmail; }).map(function(c) { return c.id; });
+
+      // Threads I started (as a non-owner)
+      var sentRes = await sb.from('messages').select('pet_id, thread_email, sender_name').eq('thread_email', myEmail);
+      var seen = {};
+      var merged = [];
+
+      (sentRes.data || []).forEach(function(m) {
+        var key = m.pet_id + ':' + m.thread_email;
+        if (!seen[key]) { seen[key] = true; merged.push({ petId: m.pet_id, threadEmail: m.thread_email, senderName: m.sender_name }); }
+      });
+
+      // Threads on my pets (as owner)
+      if (myPetIds.length > 0) {
+        var recvRes = await sb.from('messages').select('pet_id, thread_email, sender_name').in('pet_id', myPetIds);
+        (recvRes.data || []).forEach(function(m) {
+          var key = m.pet_id + ':' + m.thread_email;
+          if (!seen[key]) { seen[key] = true; merged.push({ petId: m.pet_id, threadEmail: m.thread_email, senderName: m.sender_name }); }
+        });
+      }
+
+      // Include any locally-started conv not yet in DB
+      if (activeConv) {
+        var ak = activeConv.petId + ':' + activeConv.threadEmail;
+        if (!seen[ak]) merged.push(activeConv);
+      }
+
+      conversations = merged;
       renderChatsTab();
     }
 
@@ -1911,18 +1906,21 @@
       var listEl = document.getElementById('chat-list');
       listEl.innerHTML = '';
 
-      if (convPetIds.length === 0) {
+      if (conversations.length === 0) {
         listEl.innerHTML = '<p class="chat-list-empty">No conversations yet.<br>Click "Contact Owner" on a pet card to start one.</p>';
       } else {
-        convPetIds.forEach(function(pid) {
-          var card = null;
-          for (var i = 0; i < cards.length; i++) { if (cards[i].id === pid) { card = cards[i]; break; } }
+        conversations.forEach(function(conv) {
+          var card = cards.find(function(c) { return c.id === conv.petId; });
+          var isActive = activeConv && activeConv.petId === conv.petId && activeConv.threadEmail === conv.threadEmail;
+          var amOwner  = currentUser && card && card.owner_email === currentUser.email;
+          var subtitle = amOwner ? 'From: ' + esc(conv.senderName || conv.threadEmail) : 'About: ' + esc(card ? card.name : 'Unknown Pet');
+
           var item = document.createElement('div');
-          item.className = 'chat-list-item' + (activeConvId === pid ? ' active' : '');
-          item.onclick = (function(id) {
-            return function() { activeConvId = id; renderChatsTab(); loadMessages(id); };
-          })(pid);
-          item.innerHTML = '<h4>' + esc(card ? card.name : 'Unknown Pet') + '</h4><p>View messages</p>';
+          item.className = 'chat-list-item' + (isActive ? ' active' : '');
+          item.onclick = (function(c) {
+            return function() { activeConv = c; renderChatsTab(); loadMessages(c); };
+          })(conv);
+          item.innerHTML = '<h4>' + esc(card ? card.name : 'Unknown Pet') + '</h4><p>' + subtitle + '</p>';
           listEl.appendChild(item);
         });
       }
@@ -1930,22 +1928,24 @@
       var emptyState = document.getElementById('chat-empty-state');
       var activeArea = document.getElementById('chat-active-area');
 
-      if (activeConvId !== null && convPetIds.indexOf(activeConvId) !== -1) {
+      if (activeConv) {
         emptyState.style.display = 'none';
         activeArea.style.display = 'flex';
-        var activeCard = null;
-        for (var i = 0; i < cards.length; i++) { if (cards[i].id === activeConvId) { activeCard = cards[i]; break; } }
-        document.getElementById('chat-window-title').textContent = 'Chat about: ' + (activeCard ? activeCard.name : 'Unknown');
-        loadMessages(activeConvId);
+        var ac = cards.find(function(c) { return c.id === activeConv.petId; });
+        document.getElementById('chat-window-title').textContent = 'Chat about: ' + (ac ? ac.name : 'Unknown');
+        loadMessages(activeConv);
       } else {
         emptyState.style.display = 'flex';
         activeArea.style.display = 'none';
       }
     }
 
-    async function loadMessages(petId) {
-      if (!sbReady) { renderMessages([]); return; }
-      var result = await sb.from('messages').select('*').eq('pet_id', petId).order('id', { ascending: true });
+    async function loadMessages(conv) {
+      if (!sbReady || !conv) { renderMessages([]); return; }
+      var result = await sb.from('messages').select('*')
+        .eq('pet_id', conv.petId)
+        .eq('thread_email', conv.threadEmail)
+        .order('id', { ascending: true });
       if (result.error) { console.error('loadMessages:', result.error); return; }
       renderMessages(result.data || []);
     }
@@ -1954,8 +1954,9 @@
       var box = document.getElementById('chat-messages');
       box.innerHTML = '';
       msgs.forEach(function(msg) {
+        var mine = currentUser && msg.sender_email === currentUser.email;
         var div  = document.createElement('div');
-        div.className = 'message-bubble';
+        div.className = 'message-bubble' + (mine ? ' mine' : '');
         div.innerHTML =
           '<div class="message-sender">' + esc(msg.sender_name) + ' · ' + esc(msg.time || '') + '</div>' +
           '<div class="message-text">'   + esc(msg.text)        + '</div>';
@@ -1965,11 +1966,10 @@
     }
 
     async function sendMessage() {
-      if (activeConvId === null) return;
+      if (!currentUser || !activeConv) return;
       var input = document.getElementById('chat-input');
       var text  = input.value.trim();
       if (!text) return;
-
       if (!sbReady) { alert('Supabase is not connected. Messages cannot be saved yet.'); return; }
 
       var now  = new Date();
@@ -1978,16 +1978,17 @@
       var ampm = now.getHours() >= 12 ? 'PM' : 'AM';
 
       var result = await sb.from('messages').insert({
-        pet_id:       activeConvId,
-        sender_email: currentUser ? currentUser.email : '',
-        sender_name:  currentUser ? currentUser.name  : 'Anonymous',
+        pet_id:       activeConv.petId,
+        thread_email: activeConv.threadEmail,
+        sender_email: currentUser.email,
+        sender_name:  currentUser.name,
         text:         text,
         time:         h + ':' + min + ' ' + ampm
       });
 
       if (result.error) { console.error('sendMessage:', result.error); alert('Could not send message.'); return; }
       input.value = '';
-      loadMessages(activeConvId);
+      loadMessages(activeConv);
     }
 
     // ══════════════════════════════════════════
@@ -2000,8 +2001,10 @@
         .subscribe();
       sb.channel('realtime-messages')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, function(payload) {
-          var incomingPetId = payload.new && payload.new.pet_id;
-          if (incomingPetId === activeConvId) loadMessages(activeConvId);
+          if (!activeConv || !payload.new) return;
+          if (payload.new.pet_id === activeConv.petId && payload.new.thread_email === activeConv.threadEmail) {
+            loadMessages(activeConv);
+          }
         })
         .subscribe();
     }
