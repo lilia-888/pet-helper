@@ -84,14 +84,73 @@
       flex-shrink: 0;
     }
 
+    .profile-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-family: inherit;
+    }
+
+    .profile-btn:hover { background: rgba(255,255,255,0.1); }
+
+    .avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #2563eb;
+      color: white;
+      font-size: 0.68rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      border: 2px solid rgba(255,255,255,0.3);
+    }
+
     .auth-greeting {
       font-size: 0.78rem;
-      color: rgba(255,255,255,0.72);
+      color: rgba(255,255,255,0.82);
       white-space: nowrap;
       max-width: 120px;
       overflow: hidden;
       text-overflow: ellipsis;
     }
+
+    /* ── Profile page ── */
+    .profile-card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 1.5rem;
+      max-width: 480px;
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+    }
+
+    .profile-avatar-large {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: #0f2d52;
+      color: white;
+      font-size: 1.1rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .profile-details h3 { font-size: 1.1rem; font-weight: 700; color: #0f2d52; margin-bottom: 0.2rem; }
+    .profile-details p  { font-size: 0.85rem; color: #64748b; }
 
     /* ── Buttons ── */
     .btn {
@@ -586,18 +645,6 @@
     }
 
     /* ── Chats ── */
-    .chat-login-prompt {
-      background: white;
-      border-radius: 6px;
-      border: 1px solid #e2e8f0;
-      padding: 3rem 2rem;
-      text-align: center;
-      color: #64748b;
-    }
-
-    .chat-login-prompt p { margin-bottom: 0.65rem; font-size: 0.875rem; }
-    .chat-login-prompt .btn { margin-top: 0.5rem; }
-
     .chat-layout {
       display: grid;
       grid-template-columns: 250px 1fr;
@@ -708,6 +755,7 @@
         <button class="tab-btn"        data-tab="how-to-help" onclick="showTab('how-to-help')">How to Help</button>
         <button class="tab-btn"        data-tab="tips"        onclick="showTab('tips')">Tips</button>
         <button class="tab-btn"        data-tab="chats"       onclick="showTab('chats')">Chats</button>
+        <button class="tab-btn"  data-tab="profile"     onclick="showTab('profile')" id="profile-tab-btn" style="display:none;">Profile</button>
       </div>
 
       <div class="navbar-auth">
@@ -715,8 +763,11 @@
           <button class="btn btn-nav"       onclick="openModal('login')">Log In</button>
           <button class="btn btn-nav-solid" onclick="openModal('signup')" style="margin-left:0.3rem;">Sign Up</button>
         </div>
-        <div id="auth-logged-in" class="hidden" style="display:flex;align-items:center;gap:0.4rem;">
-          <span class="auth-greeting" id="auth-greeting"></span>
+        <div id="auth-logged-in" style="display:none;align-items:center;gap:0.4rem;">
+          <button class="profile-btn" onclick="showTab('profile')">
+            <div class="avatar" id="auth-avatar"></div>
+            <span class="auth-greeting" id="auth-greeting"></span>
+          </button>
           <button class="btn btn-nav" onclick="logOut()">Log Out</button>
         </div>
       </div>
@@ -1045,13 +1096,7 @@
         <span class="section-tag">Messaging</span>
         <h2>Chats</h2>
 
-        <div id="chats-logged-out" class="chat-login-prompt">
-          <p>Your private messages will appear here.</p>
-          <p>Click "Contact Owner" on any pet card to start a conversation.<br>You need to be logged in to send or receive messages.</p>
-          <button class="btn btn-primary" onclick="openModal('login')">Log In to Chat</button>
-        </div>
-
-        <div id="chats-logged-in" class="hidden">
+        <div id="chats-logged-in">
           <div class="chat-layout">
             <div class="chat-sidebar">
               <div class="chat-sidebar-title">Conversations</div>
@@ -1071,6 +1116,30 @@
           </div>
         </div>
 
+      </div>
+    </div>
+
+    <!-- Profile -->
+    <div class="tab-panel hidden" id="tab-profile">
+      <div class="section-inner">
+        <span class="section-tag">Account</span>
+        <h2>My Profile</h2>
+
+        <div class="profile-card">
+          <div class="profile-avatar-large" id="profile-avatar-large"></div>
+          <div class="profile-details">
+            <h3 id="profile-name"></h3>
+            <p id="profile-email"></p>
+          </div>
+        </div>
+
+        <h2>My Listings</h2>
+        <div class="card-grid" id="profile-card-grid">
+          <div id="profile-no-listings" style="display:none;grid-column:1/-1;padding:2rem;text-align:center;color:#64748b;font-size:0.875rem;background:white;border:1px solid #e2e8f0;border-radius:6px;">
+            You have no active listings.
+            <button class="btn btn-amber btn-sm" style="display:block;margin:0.75rem auto 0;" onclick="showTab('post-pet')">Report a Lost Pet</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1180,7 +1249,8 @@
           if (helpMap) helpMap.invalidateSize();
         }, 60);
       }
-      if (id === 'chats') loadConvPetIds();
+      if (id === 'chats')   renderChatsTab();
+      if (id === 'profile') renderProfileTab();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -1225,13 +1295,11 @@
 
       var found = null;
 
-      // Try Supabase first (works across all devices)
       if (sbReady) {
         var result = await sb.from('accounts').select('*').eq('email', email).eq('password', password);
         if (result.data && result.data.length > 0) found = result.data[0];
       }
 
-      // Fall back to localStorage (same-device accounts)
       if (!found) {
         for (var i = 0; i < users.length; i++) {
           if (users[i].email.toLowerCase() === email && users[i].password === password) { found = users[i]; break; }
@@ -1243,6 +1311,7 @@
 
       if (!found) { errEl.textContent = 'Email or password is incorrect.'; return; }
       currentUser = found;
+      saveSession();
       closeModal();
       updateAuthUI();
     }
@@ -1260,13 +1329,12 @@
       btn.textContent = 'Creating account…';
       btn.disabled    = true;
 
-      // Check for duplicate email in Supabase
       if (sbReady) {
         var check = await sb.from('accounts').select('id').eq('email', email);
         if (check.data && check.data.length > 0) {
-          errEl.textContent    = 'An account with that email already exists.';
-          btn.textContent      = 'Sign Up';
-          btn.disabled         = false;
+          errEl.textContent = 'An account with that email already exists.';
+          btn.textContent   = 'Sign Up';
+          btn.disabled      = false;
           return;
         }
         var insert = await sb.from('accounts').insert({ name: name, email: email, password: password }).select().single();
@@ -1279,7 +1347,6 @@
         }
         currentUser = insert.data;
       } else {
-        // No Supabase — check localStorage for duplicates
         for (var i = 0; i < users.length; i++) {
           if (users[i].email.toLowerCase() === email) {
             errEl.textContent = 'An account with that email already exists.';
@@ -1291,9 +1358,9 @@
         currentUser = { name: name, email: email, password: password };
       }
 
-      // Always cache in localStorage so login works offline too
       users.push(currentUser);
       saveUsers();
+      saveSession();
 
       btn.textContent = 'Sign Up';
       btn.disabled    = false;
@@ -1301,20 +1368,51 @@
       updateAuthUI();
     }
 
+    function saveSession() {
+      localStorage.setItem('petalert_session', JSON.stringify(currentUser));
+    }
+
+    function clearSession() {
+      localStorage.removeItem('petalert_session');
+    }
+
     function logOut() {
       currentUser  = null;
       activeConvId = null;
       convPetIds   = [];
+      clearSession();
       updateAuthUI();
+      showTab('lost-pets');
     }
 
     function updateAuthUI() {
       var on = !!currentUser;
-      document.getElementById('auth-logged-out').classList.toggle('hidden', on);
-      document.getElementById('auth-logged-in').classList.toggle('hidden', !on);
-      if (on) document.getElementById('auth-greeting').textContent = 'Hi, ' + currentUser.name;
-      document.getElementById('form-login-note').style.display = on ? 'none' : 'block';
+      document.getElementById('auth-logged-out').style.display  = on ? 'none' : '';
+      document.getElementById('auth-logged-in').style.display   = on ? 'flex' : 'none';
+      document.getElementById('profile-tab-btn').style.display  = on ? '' : 'none';
+      document.getElementById('form-login-note').style.display  = on ? 'none' : 'block';
+      if (on) {
+        var initials = currentUser.name.trim().split(/\s+/).map(function(w) { return w[0]; }).slice(0, 2).join('').toUpperCase();
+        document.getElementById('auth-avatar').textContent   = initials;
+        document.getElementById('auth-greeting').textContent = currentUser.name;
+      }
       loadPets();
+    }
+
+    function renderProfileTab() {
+      if (!currentUser) return;
+      var initials = currentUser.name.trim().split(/\s+/).map(function(w) { return w[0]; }).slice(0, 2).join('').toUpperCase();
+      document.getElementById('profile-avatar-large').textContent = initials;
+      document.getElementById('profile-name').textContent  = currentUser.name;
+      document.getElementById('profile-email').textContent = currentUser.email;
+
+      var grid = document.getElementById('profile-card-grid');
+      grid.querySelectorAll('.pet-card').forEach(function(c) { c.remove(); });
+
+      var mine = cards.filter(function(c) { return c.owner_email === currentUser.email; });
+      var noEl = document.getElementById('profile-no-listings');
+      noEl.style.display = mine.length === 0 ? 'block' : 'none';
+      mine.forEach(function(card) { grid.insertBefore(buildCardEl(card), noEl); });
     }
 
     // ══════════════════════════════════════════
@@ -1348,7 +1446,6 @@
     }
 
     function buildCardEl(card) {
-      var isOwner  = currentUser && currentUser.email === card.owner_email;
       var el       = document.createElement('div');
       el.className = 'pet-card';
       el.dataset.id   = card.id;
@@ -1369,6 +1466,7 @@
         distHtml = '<p class="pet-distance">' + d.toFixed(1) + ' km from your location</p>';
       }
 
+      var isOwner = currentUser && currentUser.email === card.owner_email;
       var btnHtml = isOwner
         ? '<button class="btn btn-green"   onclick="markAsReunited(' + card.id + ')">Mark as Reunited</button>'
         : '<button class="btn btn-primary" onclick="contactOwner('  + card.id + ')">Contact Owner</button>';
@@ -1799,51 +1897,17 @@
     // Chats
     // ══════════════════════════════════════════
     function contactOwner(cardId) {
-      if (!currentUser) { openModal('login'); return; }
-      var card = null;
-      for (var i = 0; i < cards.length; i++) { if (cards[i].id === cardId) { card = cards[i]; break; } }
-      if (!card) return;
-      if (card.owner_email === currentUser.email) {
-        alert('This is your own post. Other users can message you by clicking "Contact Owner".');
-        return;
-      }
       activeConvId = cardId;
       if (convPetIds.indexOf(cardId) === -1) convPetIds.push(cardId);
       showTab('chats');
     }
 
-    async function loadConvPetIds() {
-      if (!currentUser) { convPetIds = []; renderChatsTab(); return; }
-      if (!sbReady)     { convPetIds = activeConvId !== null ? [activeConvId] : []; renderChatsTab(); return; }
-
-      var sentResult = await sb.from('messages').select('pet_id').eq('sender_email', currentUser.email);
-      var sentIds    = (sentResult.data || []).map(function(m) { return m.pet_id; });
-
-      var myPetIds = cards.filter(function(c) { return c.owner_email === currentUser.email; }).map(function(c) { return c.id; });
-      var recvIds  = [];
-      if (myPetIds.length > 0) {
-        var recvResult = await sb.from('messages').select('pet_id').in('pet_id', myPetIds);
-        recvIds = (recvResult.data || []).map(function(m) { return m.pet_id; });
-      }
-
-      var seen = {};
-      var merged = sentIds.concat(recvIds).filter(function(id) {
-        if (seen[id]) return false;
-        seen[id] = true;
-        return true;
-      });
-
-      if (activeConvId !== null && merged.indexOf(activeConvId) === -1) merged.push(activeConvId);
-      convPetIds = merged;
+    function loadConvPetIds() {
+      if (activeConvId !== null && convPetIds.indexOf(activeConvId) === -1) convPetIds.push(activeConvId);
       renderChatsTab();
     }
 
     function renderChatsTab() {
-      var on = !!currentUser;
-      document.getElementById('chats-logged-out').classList.toggle('hidden', on);
-      document.getElementById('chats-logged-in').classList.toggle('hidden', !on);
-      if (!on) return;
-
       var listEl = document.getElementById('chat-list');
       listEl.innerHTML = '';
 
@@ -1890,9 +1954,8 @@
       var box = document.getElementById('chat-messages');
       box.innerHTML = '';
       msgs.forEach(function(msg) {
-        var mine = currentUser && msg.sender_email === currentUser.email;
         var div  = document.createElement('div');
-        div.className = 'message-bubble' + (mine ? ' mine' : '');
+        div.className = 'message-bubble';
         div.innerHTML =
           '<div class="message-sender">' + esc(msg.sender_name) + ' · ' + esc(msg.time || '') + '</div>' +
           '<div class="message-text">'   + esc(msg.text)        + '</div>';
@@ -1902,7 +1965,7 @@
     }
 
     async function sendMessage() {
-      if (!currentUser || activeConvId === null) return;
+      if (activeConvId === null) return;
       var input = document.getElementById('chat-input');
       var text  = input.value.trim();
       if (!text) return;
@@ -1916,8 +1979,8 @@
 
       var result = await sb.from('messages').insert({
         pet_id:       activeConvId,
-        sender_email: currentUser.email,
-        sender_name:  currentUser.name,
+        sender_email: currentUser ? currentUser.email : '',
+        sender_name:  currentUser ? currentUser.name  : 'Anonymous',
         text:         text,
         time:         h + ':' + min + ' ' + ampm
       });
@@ -1925,7 +1988,6 @@
       if (result.error) { console.error('sendMessage:', result.error); alert('Could not send message.'); return; }
       input.value = '';
       loadMessages(activeConvId);
-      loadConvPetIds();
     }
 
     // ══════════════════════════════════════════
@@ -1940,7 +2002,6 @@
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, function(payload) {
           var incomingPetId = payload.new && payload.new.pet_id;
           if (incomingPetId === activeConvId) loadMessages(activeConvId);
-          if (currentUser) loadConvPetIds();
         })
         .subscribe();
     }
@@ -2001,6 +2062,11 @@
     document.getElementById('chat-input').addEventListener('keydown', function(e) {
       if (e.key === 'Enter') sendMessage();
     });
+
+    try {
+      var _s = localStorage.getItem('petalert_session');
+      if (_s) currentUser = JSON.parse(_s);
+    } catch(e) {}
 
     updateAuthUI();
     setupRealtime();
