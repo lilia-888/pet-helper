@@ -926,49 +926,48 @@
     </div>
   </div>
 
-  <!-- Modals -->
-  <div id="modal-overlay" class="modal-overlay hidden" onclick="closeModalIfOverlay(event)">
-
-    <div id="modal-login" class="modal hidden">
+  <!-- Login modal -->
+  <div id="modal-overlay-login" class="modal-overlay hidden" onclick="closeModalIfOverlay(event,'login')">
+    <div class="modal">
       <h3>Log In</h3>
       <div class="form-group">
-        <label for="login-email">Email</label>
-        <input type="email" id="login-email" placeholder="you@example.com" />
+        <label for="login-username">Username</label>
+        <input type="text" id="login-username" placeholder="Your username" autocomplete="username" />
       </div>
       <div class="form-group">
         <label for="login-password">Password</label>
-        <input type="password" id="login-password" placeholder="Your password" />
+        <input type="password" id="login-password" placeholder="Your password" autocomplete="current-password" />
       </div>
       <p class="form-error" id="login-error"></p>
       <div class="modal-actions">
         <button class="btn btn-primary" onclick="submitLogin()">Log In</button>
-        <button class="modal-cancel"    onclick="closeModal()">Cancel</button>
+        <button class="modal-cancel"    onclick="closeModal('login')">Cancel</button>
       </div>
-      <p class="modal-switch">No account? <button onclick="switchModal('signup')">Sign Up</button></p>
     </div>
+  </div>
 
-    <div id="modal-signup" class="modal hidden">
+  <!-- Sign-up modal -->
+  <div id="modal-overlay-signup" class="modal-overlay hidden" onclick="closeModalIfOverlay(event,'signup')">
+    <div class="modal">
       <h3>Create an Account</h3>
       <div class="form-group">
-        <label for="signup-name">Your name</label>
-        <input type="text" id="signup-name" placeholder="e.g. Sarah" />
+        <label for="signup-name">Username</label>
+        <input type="text" id="signup-name" placeholder="Choose a username" autocomplete="username" />
       </div>
       <div class="form-group">
         <label for="signup-email">Email</label>
-        <input type="email" id="signup-email" placeholder="you@example.com" />
+        <input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email" />
       </div>
       <div class="form-group">
         <label for="signup-password">Password</label>
-        <input type="password" id="signup-password" placeholder="Choose a password" />
+        <input type="password" id="signup-password" placeholder="Choose a password" autocomplete="new-password" />
       </div>
       <p class="form-error" id="signup-error"></p>
       <div class="modal-actions">
         <button class="btn btn-primary" onclick="submitSignup()">Sign Up</button>
-        <button class="modal-cancel"    onclick="closeModal()">Cancel</button>
+        <button class="modal-cancel"    onclick="closeModal('signup')">Cancel</button>
       </div>
-      <p class="modal-switch">Already have an account? <button onclick="switchModal('login')">Log In</button></p>
     </div>
-
   </div>
 
   <!-- Tab panels -->
@@ -1117,7 +1116,7 @@
           <p class="form-login-note" id="form-login-note">
             You need to be logged in to post.
             <button type="button" onclick="openModal('login')">Log In</button> or
-            <button type="button" onclick="openModal('signup')">Sign Up</button>
+            <button type="button" onclick="openModal('signup')">Create an Account</button>
           </p>
         </form>
       </div>
@@ -1401,48 +1400,47 @@
     // Auth
     // ══════════════════════════════════════════
     function openModal(type) {
-      document.getElementById('modal-overlay').classList.remove('hidden');
-      document.getElementById('modal-login').classList.add('hidden');
-      document.getElementById('modal-signup').classList.add('hidden');
-      document.getElementById('modal-' + type).classList.remove('hidden');
       document.getElementById('login-error').textContent  = '';
       document.getElementById('signup-error').textContent = '';
+      if (type === 'login') {
+        document.getElementById('login-username').value = '';
+        document.getElementById('login-password').value = '';
+      } else {
+        document.getElementById('signup-name').value     = '';
+        document.getElementById('signup-email').value    = '';
+        document.getElementById('signup-password').value = '';
+      }
+      document.getElementById('modal-overlay-' + type).classList.remove('hidden');
     }
 
-    function closeModal() {
-      document.getElementById('modal-overlay').classList.add('hidden');
-      document.getElementById('modal-login').classList.add('hidden');
-      document.getElementById('modal-signup').classList.add('hidden');
+    function closeModal(type) {
+      if (type) {
+        document.getElementById('modal-overlay-' + type).classList.add('hidden');
+      } else {
+        document.getElementById('modal-overlay-login').classList.add('hidden');
+        document.getElementById('modal-overlay-signup').classList.add('hidden');
+      }
     }
 
-    function closeModalIfOverlay(e) {
-      if (e.target === document.getElementById('modal-overlay')) closeModal();
-    }
-
-    function switchModal(type) {
-      document.getElementById('modal-login').classList.add('hidden');
-      document.getElementById('modal-signup').classList.add('hidden');
-      document.getElementById('modal-' + type).classList.remove('hidden');
-      document.getElementById('login-error').textContent  = '';
-      document.getElementById('signup-error').textContent = '';
+    function closeModalIfOverlay(e, type) {
+      if (e.target === document.getElementById('modal-overlay-' + type)) closeModal(type);
     }
 
     function submitLogin() {
-      var email    = document.getElementById('login-email').value.trim().toLowerCase();
+      var username = document.getElementById('login-username').value.trim().toLowerCase();
       var password = document.getElementById('login-password').value;
       var errEl    = document.getElementById('login-error');
-      var btn      = document.querySelector('#modal-login .btn-primary');
       errEl.textContent = '';
 
       var found = null;
       for (var i = 0; i < users.length; i++) {
-        if (users[i].email.toLowerCase() === email && users[i].password === password) { found = users[i]; break; }
+        if (users[i].name.trim().toLowerCase() === username && users[i].password === password) { found = users[i]; break; }
       }
 
-      if (!found) { errEl.textContent = 'Email or password is incorrect.'; return; }
+      if (!found) { errEl.textContent = 'Username or password is incorrect.'; return; }
       currentUser = found;
       saveSession();
-      closeModal();
+      closeModal('login');
       updateAuthUI();
     }
 
@@ -1467,7 +1465,7 @@
       saveUsers();
       saveSession();
 
-      closeModal();
+      closeModal('signup');
       updateAuthUI();
     }
 
