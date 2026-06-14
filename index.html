@@ -1107,6 +1107,7 @@
           </div>
 
           <button type="submit" class="btn btn-amber">Report a Lost Pet</button>
+          <p id="pet-reported-toast" style="display:none; margin-top:0.75rem; color:#16a34a; font-weight:600; font-size:0.9rem;">Pet reported!</p>
           <p class="form-login-note" id="form-login-note">
             You need to be logged in to post.
             <button type="button" onclick="openModal('login')">Log In</button> or
@@ -1723,8 +1724,11 @@
 
       var newCard = result.data;
       document.getElementById('pet-form').reset();
-      showTab('lost-pets');
       loadPets();
+
+      var toast = document.getElementById('pet-reported-toast');
+      toast.style.display = 'block';
+      setTimeout(function() { toast.style.display = 'none'; }, 3000);
 
       nominatim(location, async function(lat, lng) {
         if (lat !== null) {
