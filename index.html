@@ -430,10 +430,6 @@
       text-transform: uppercase;
       border-bottom: 1px solid #e2e8f0;
     }
-    img.pet-photo {
-      object-fit: cover;
-      display: block;
-    }
 
     .pet-card-body { padding: 0.9rem; }
     .pet-card-body h3 { font-size: 0.95rem; font-weight: 700; color: #0f2d52; margin-bottom: 0.12rem; }
@@ -1643,12 +1639,8 @@
         ? '<button class="btn btn-green"   onclick="markAsReunited(' + card.id + ')">Mark as Reunited</button>'
         : '<button class="btn btn-primary" onclick="contactOwner('  + card.id + ')">Contact Owner</button>';
 
-      var photoHtml = card.photo_url
-        ? '<img class="pet-photo" src="' + esc(card.photo_url) + '" alt="Photo of ' + esc(card.name) + '" />'
-        : '<div class="pet-photo">No photo uploaded</div>';
-
       el.innerHTML =
-        photoHtml +
+        '<div class="pet-photo">No photo uploaded</div>' +
         '<div class="pet-card-body">' +
           '<h3>' + esc(card.name) + '</h3>' +
           '<p class="pet-type">' + typeLabel + colorInfo + '</p>' +
@@ -1683,8 +1675,6 @@
       var location = document.getElementById('last-seen-location').value.trim();
       var date     = document.getElementById('last-seen-date').value;
       var time     = document.getElementById('last-seen-time').value;
-      var photoFile = document.getElementById('pet-photo').files[0] || null;
-
       if (!name || !type || !location) {
         alert('Please fill in the pet name, animal type, and last seen location.');
         return;
@@ -1695,25 +1685,11 @@
         return;
       }
 
-      var photoUrl = null;
-      if (photoFile) {
-        var ext      = photoFile.name.split('.').pop();
-        var filePath = currentUser.email + '/' + Date.now() + '.' + ext;
-        var upload   = await sb.storage.from('pet-photos').upload(filePath, photoFile, { upsert: true });
-        if (upload.error) {
-          console.error('Photo upload error:', upload.error);
-          alert('Photo upload failed: ' + (upload.error.message || JSON.stringify(upload.error)));
-          return;
-        }
-        var pub = sb.storage.from('pet-photos').getPublicUrl(filePath);
-        photoUrl = pub.data.publicUrl;
-      }
-
       var result = await sb.from('pets').insert({
         owner_email: currentUser.email,
         name: name, type: type, color: color, size: size,
         location: location, date: date, time: time,
-        photo_url: photoUrl, reunited: false, lat: null, lng: null
+        reunited: false, lat: null, lng: null
       }).select().single();
 
       if (result.error) {
