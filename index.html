@@ -1626,7 +1626,6 @@
       var colorInfo = card.color ? ' — ' + esc(card.color) : '';
       var dateLabel = fmtDate(card.date);
       var timeLabel = fmtTime(card.time);
-      var radLabel  = { '1':'1 km', '2':'2 km', '5':'5 km', '10':'10 km' }[String(card.radius)] || (card.radius + ' km');
 
       var distHtml = '';
       if (userLat !== null && card.lat && card.lng) {
@@ -1639,15 +1638,18 @@
         ? '<button class="btn btn-green"   onclick="markAsReunited(' + card.id + ')">Mark as Reunited</button>'
         : '<button class="btn btn-primary" onclick="contactOwner('  + card.id + ')">Contact Owner</button>';
 
+      var photoHtml = card.photo_url
+        ? '<img class="pet-photo" src="' + esc(card.photo_url) + '" alt="Photo of ' + esc(card.name) + '" />'
+        : '<div class="pet-photo">No photo uploaded</div>';
+
       el.innerHTML =
-        '<div class="pet-photo">No photo uploaded</div>' +
+        photoHtml +
         '<div class="pet-card-body">' +
           '<h3>' + esc(card.name) + '</h3>' +
           '<p class="pet-type">' + typeLabel + colorInfo + '</p>' +
           '<p class="pet-meta"><span class="pet-meta-label">Last seen at</span>' + esc(card.location) + '</p>' +
           distHtml +
           '<p class="pet-meta"><span class="pet-meta-label">Date</span>' + dateLabel + (timeLabel ? ' at ' + timeLabel : '') + '</p>' +
-          '<span class="radius-badge">Within ' + radLabel + '</span>' +
           '<div class="card-btn-row">' + btnHtml + '</div>' +
         '</div>';
 
@@ -1676,7 +1678,7 @@
       var location = document.getElementById('last-seen-location').value.trim();
       var date     = document.getElementById('last-seen-date').value;
       var time     = document.getElementById('last-seen-time').value;
-      var radius   = document.getElementById('search-radius').value || '5';
+      var photoFile = document.getElementById('pet-photo').files[0] || null;
 
       if (!name || !type || !location) {
         alert('Please fill in the pet name, animal type, and last seen location.');
@@ -1688,11 +1690,25 @@
         return;
       }
 
+      var photoUrl = null;
+      if (photoFile) {
+        var ext      = photoFile.name.split('.').pop();
+        var filePath = currentUser.email + '/' + Date.now() + '.' + ext;
+        var upload   = await sb.storage.from('pet-photos').upload(filePath, photoFile, { upsert: true });
+        if (upload.error) {
+          console.error('Photo upload error:', upload.error);
+          alert('Photo upload failed: ' + (upload.error.message || JSON.stringify(upload.error)));
+          return;
+        }
+        var pub = sb.storage.from('pet-photos').getPublicUrl(filePath);
+        photoUrl = pub.data.publicUrl;
+      }
+
       var result = await sb.from('pets').insert({
         owner_email: currentUser.email,
         name: name, type: type, color: color, size: size,
-        location: location, date: date, time: time, radius: radius,
-        reunited: false, lat: null, lng: null
+        location: location, date: date, time: time,
+        photo_url: photoUrl, reunited: false, lat: null, lng: null
       }).select().single();
 
       if (result.error) {
